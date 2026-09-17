@@ -144,6 +144,10 @@ const tourSchema = new mongoose.Schema(
           type: Boolean,
           default: true,
         },
+        adventureLeader: {
+          type: mongoose.Schema.ObjectId,
+          ref: "User",
+        },
       },
     ],
     ownRoomAvailable: {
@@ -403,6 +407,18 @@ const tourSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    adventureLeaders: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "User",
+      },
+    ],
+    affiliates: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "Affiliate",
+      },
+    ],
     seo: {
       metaTitle: String,
       metaDescription: String,
@@ -424,6 +440,8 @@ tourSchema.index({ startDates: 1 });
 tourSchema.index({ isActive: 1 });
 tourSchema.index({ isFeatured: -1 });
 tourSchema.index({ travelStyle: 1 });
+tourSchema.index({ adventureLeaders: 1 });
+tourSchema.index({ affiliates: 1 });
 
 tourSchema.index({ "duration.days": 1 });
 

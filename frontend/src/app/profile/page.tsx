@@ -3,6 +3,25 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import {
+    MapPin,
+    User as UserIcon,
+    Clock,
+    Camera,
+    Heart,
+    Eye,
+    Lock,
+    Ticket,
+    Star,
+    Compass,
+    Copy,
+    Check,
+    Pencil,
+    X,
+    CalendarDays,
+    Users,
+    ArrowRight
+} from "lucide-react";
 import { uploadUserAvatar } from "@/lib/firebase";
 import { api } from "@/lib/api";
 import BookingDetailsModal from "@/components/BookingDetailsModal";
@@ -18,11 +37,6 @@ interface User {
     phone?: string;
     dateOfBirth?: string;
     nationality?: string;
-    preferences?: {
-        activityLevel?: string;
-        budgetRange?: { min: number; max: number };
-        interests?: string[];
-    };
     createdAt: string;
     walletBalance?: number;
     walletExpiresAt?: string;
@@ -56,40 +70,33 @@ interface Booking {
         email?: string;
         phone?: string;
     }>;
-    extras?: {
-        activities?: Array<{
-            name: string;
-            price: number;
-            count: number;
-        }>;
-        accommodationUpgrade?: {
-            name: string;
-            price: number;
-            count: number;
-        };
-    };
     installmentPlan?: {
         isActive: boolean;
-        [key: string]: any;
+        subscriptionId?: string;
+        totalAmount: number;
+        upfrontAmount: number;
+        remainingAmount: number;
+        numberOfInstallments: number;
+        installmentAmount: number;
+        deadline: string;
+        schedule: Array<{
+            installmentNumber: number;
+            amount: number;
+            dueDate: string;
+            type: string;
+            status: string;
+            paidAt?: string;
+            transactionId?: string;
+        }>;
     };
     tour: {
         _id: string;
         name: string;
         slug: string;
         tourCode: string;
-        images?: Array<{ url: string; caption?: string; isPrimary?: boolean }>;
-        duration?: {
-            days: number;
-            nights: number;
-        };
-        location?: {
-            startCity: string;
-            endCity: string;
-        };
-        price?: {
-            amount: number;
-            currency: string;
-        };
+        duration: { days: number; nights: number };
+        images: Array<{ url: string }>;
+        startLocation: { name: string };
     };
     createdAt: string;
 }
@@ -98,13 +105,13 @@ interface Review {
     _id: string;
     rating: number;
     review: string;
-    createdAt: string;
     tour: {
         _id: string;
         name: string;
         slug: string;
         tourCode: string;
     };
+    createdAt: string;
 }
 
 interface Tour {
@@ -112,44 +119,13 @@ interface Tour {
     name: string;
     slug: string;
     tourCode: string;
-    price: {
-        amount: number;
-        currency: string;
-        discountPercent: number;
-    };
-    duration: {
-        days: number;
-        nights: number;
-    };
-    ratingsAverage: number;
-    ratingsQuantity: number;
-    summary: string;
-    images: Array<{
-        url: string;
-        caption: string;
-        isPrimary: boolean;
-    }>;
-    country: {
-        _id: string;
-        name: string;
-    };
-    startDates: any[];
-    travelStyle: string;
+    duration: { days: number; nights: number };
+    price: { amount: number; currency: string; discountPercent: number };
+    images: Array<{ url: string; caption?: string; isPrimary?: boolean }>;
+    startLocation: { name: string };
+    ratingsAverage?: number;
+    ratingsQuantity?: number;
 }
-
-
-
-// Helper function
-const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    });
-};
-
-type TabType = "overview" | "bookings" | "lifetime deposits" | "reviews" | "hold spaces" | "settings" | "wishlist" | "nba club";
-const VALID_TABS: TabType[] = ["overview", "bookings", "lifetime deposits", "reviews", "hold spaces", "settings", "wishlist", "nba club"];
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -159,31 +135,22 @@ export default function ProfilePage() {
     const [reviews, setReviews] = useState<Review[]>([]);
     const [holdSpaces, setHoldSpaces] = useState<any[]>([]);
     const [wishlist, setWishlist] = useState<Tour[]>([]);
-    const [lifetimeDeposits, setLifetimeDeposits] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    
-    const [activeTab, setActiveTab] = useState<TabType>(() => {
-        const tabParam = searchParams.get("tab") as TabType;
-        return VALID_TABS.includes(tabParam) ? tabParam : "overview";
-    });
 
-    useEffect(() => {
-        const tabParam = searchParams.get("tab") as TabType;
-        if (VALID_TABS.includes(tabParam) && tabParam !== activeTab) {
-            setActiveTab(tabParam);
-        }
-    }, [searchParams, activeTab]);
+    // Expansion toggles for sections with multiple items
+    const [showAllBookings, setShowAllBookings] = useState(false);
+    const [showAllHolds, setShowAllHolds] = useState(false);
+    const [showAllDeposits, setShowAllDeposits] = useState(false);
+    const [showAllWishlist, setShowAllWishlist] = useState(false);
+    const [showAllReviews, setShowAllReviews] = useState(false);
 
-    const handleTabChange = (tab: TabType) => {
-        setActiveTab(tab);
-        const params = new URLSearchParams(window.location.search);
-        params.set("tab", tab);
-        window.history.replaceState(null, "", `?${params.toString()}`);
-    };
+    // Hold releasing & Copy code states
     const [releasingHold, setReleasingHold] = useState<string | null>(null);
+    const [copiedDepositCode, setCopiedDepositCode] = useState<string | null>(null);
+    const [lifetimeDeposits, setLifetimeDeposits] = useState<any[]>([]);
 
-    // Edit mode
-    const [isEditing, setIsEditing] = useState(false);
+    // Edit profile state
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editForm, setEditForm] = useState({
         name: "",
         phone: "",
@@ -193,43 +160,70 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-    // Password change state
-    const [passwordForm, setPasswordForm] = useState({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-    });
-    const [changingPassword, setChangingPassword] = useState(false);
-
-    // Booking details modal state
+    // Modals
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
     const [selectedHoldSpace, setSelectedHoldSpace] = useState<any>(null);
 
-    // Countdown tick for real-time timer
+    // Real-time tick for hold expiration timers
     const [, setCountdownTick] = useState(0);
 
     useEffect(() => {
         fetchUserData();
     }, []);
 
-    // Real-time countdown timer - ticks every second when on hold spaces tab
+    // Countdown tick for holds
     useEffect(() => {
-        if (activeTab !== "hold spaces") return;
-
         const interval = setInterval(() => {
-            setCountdownTick(prev => prev + 1);
+            setCountdownTick((prev) => prev + 1);
 
-            // Auto-expire holds locally
-            setHoldSpaces(prev => prev.map(h => {
-                if (h.status === 'active' && new Date(h.expiresAt) <= new Date()) {
-                    return { ...h, status: 'expired' };
-                }
-                return h;
-            }));
+            setHoldSpaces((prev) =>
+                prev.map((h) => {
+                    if (h.status === "active" && new Date(h.expiresAt) <= new Date()) {
+                        return { ...h, status: "expired" };
+                    }
+                    return h;
+                })
+            );
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [activeTab]);
+    }, []);
+
+    // Tab URL param compatibility
+    useEffect(() => {
+        const tabParam = searchParams.get("tab")?.toLowerCase();
+        if (tabParam) {
+            let targetId = "";
+            if (tabParam.includes("book")) {
+                targetId = "bookings";
+                setShowAllBookings(true);
+            } else if (tabParam.includes("hold")) {
+                targetId = "hold-spaces";
+                setShowAllHolds(true);
+            } else if (tabParam.includes("deposit")) {
+                targetId = "lifetime-deposits";
+                setShowAllDeposits(true);
+            } else if (tabParam.includes("wish")) {
+                targetId = "wishlist";
+                setShowAllWishlist(true);
+            } else if (tabParam.includes("review")) {
+                targetId = "reviews";
+                setShowAllReviews(true);
+            } else if (tabParam.includes("setting")) {
+                router.push("/profile/settings");
+                return;
+            }
+
+            if (targetId) {
+                setTimeout(() => {
+                    const el = document.getElementById(targetId);
+                    if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                }, 300);
+            }
+        }
+    }, [searchParams, router]);
 
     const fetchUserData = async () => {
         try {
@@ -239,7 +233,6 @@ export default function ProfilePage() {
                 return;
             }
 
-            // Fetch user profile
             const userRes = await fetch(`${api.baseURL}/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -306,7 +299,7 @@ export default function ProfilePage() {
                 setWishlist(wishlistData.data.wishlist || []);
             }
         } catch (error) {
-            console.error("Error fetching user data:", error);
+            console.error("Error fetching profile data:", error);
         } finally {
             setLoading(false);
         }
@@ -316,14 +309,12 @@ export default function ProfilePage() {
         const file = e.target.files?.[0];
         if (!file || !user) return;
 
+        setUploadingAvatar(true);
         try {
-            setUploadingAvatar(true);
-
             const avatarUrl = await uploadUserAvatar(file);
-
-            // Update user avatar in the backend
             const token = localStorage.getItem("token");
-            const res = await fetch(`${api.baseURL}/users/update-me`, {
+
+            const res = await fetch(`${api.baseURL}/users/updateMe`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -333,22 +324,23 @@ export default function ProfilePage() {
             });
 
             if (res.ok) {
-                const data = await res.json();
-                setUser(data.data.user);
+                const updatedUser = await res.json();
+                setUser(updatedUser.data.user);
             }
         } catch (error) {
-            console.error("Avatar upload error:", error);
-            alert("Failed to upload avatar");
+            console.error("Error uploading avatar:", error);
+            alert("Failed to upload avatar image.");
         } finally {
             setUploadingAvatar(false);
         }
     };
 
-    const handleSaveProfile = async () => {
+    const handleSaveProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
         try {
-            setSaving(true);
             const token = localStorage.getItem("token");
-            const res = await fetch(`${api.baseURL}/users/update-me`, {
+            const res = await fetch(`${api.baseURL}/users/updateMe`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -358,81 +350,57 @@ export default function ProfilePage() {
             });
 
             if (res.ok) {
-                const data = await res.json();
-                setUser(data.data.user);
-                setIsEditing(false);
-                alert("Profile updated successfully!");
+                const updatedUser = await res.json();
+                setUser(updatedUser.data.user);
+                setIsEditModalOpen(false);
             } else {
-                const error = await res.json();
-                alert("Error: " + error.message);
+                const err = await res.json();
+                alert(err.message || "Failed to update profile");
             }
         } catch (error) {
-            console.error("Save error:", error);
-            alert("Failed to save profile");
+            console.error("Error updating profile:", error);
+            alert("An error occurred while saving your profile.");
         } finally {
             setSaving(false);
         }
     };
 
-    const handlePasswordChange = async () => {
-        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            alert("New passwords do not match!");
-            return;
-        }
-
-        if (passwordForm.newPassword.length < 8) {
-            alert("Password must be at least 8 characters long");
-            return;
-        }
-
-        try {
-            setChangingPassword(true);
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${api.baseURL}/auth/update-password`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    passwordCurrent: passwordForm.currentPassword,
-                    password: passwordForm.newPassword,
-                    passwordConfirm: passwordForm.confirmPassword,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                if (data.token) {
-                    localStorage.setItem("token", data.token);
-                }
-                alert("Password updated successfully!");
-                setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-            } else {
-                alert("Error: " + (data.message || "Failed to update password"));
-            }
-        } catch (error) {
-            console.error("Password change error:", error);
-            alert("An error occurred while changing password");
-        } finally {
-            setChangingPassword(false);
-        }
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return "N/A";
+        return new Date(dateStr).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+        });
     };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedDepositCode(text);
+        setTimeout(() => setCopiedDepositCode(null), 2500);
+    };
+
+    const activeHolds = holdSpaces.filter((h) => h.status === "active");
+    const activeDeposits = lifetimeDeposits.filter((d) => d.status === "active");
+
+    const hasAnyContent =
+        wishlist.length > 0 ||
+        bookings.length > 0 ||
+        activeHolds.length > 0 ||
+        activeDeposits.length > 0 ||
+        reviews.length > 0;
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50">
-                <div className="max-w-6xl mx-auto px-4 py-12">
-                    <div className="animate-pulse">
-                        <div className="bg-white rounded-2xl p-8 mb-6">
-                            <div className="flex items-center gap-6">
-                                <div className="w-24 h-24 bg-gray-200 rounded-full"></div>
-                                <div className="flex-1">
-                                    <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
-                                    <div className="h-4 bg-gray-200 rounded w-32"></div>
-                                </div>
-                            </div>
+            <div className="min-h-screen bg-white">
+                <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-6 md:px-8 xl:px-[35px] py-12 animate-pulse space-y-8">
+                    <div className="h-10 w-64 bg-gray-100 rounded-2xl"></div>
+                    <div className="flex items-center gap-6">
+                        <div className="w-28 h-28 rounded-full bg-gray-100"></div>
+                        <div className="space-y-3 flex-1">
+                            <div className="h-4 w-40 bg-gray-100 rounded-xl"></div>
+                            <div className="h-4 w-32 bg-gray-100 rounded-xl"></div>
+                            <div className="h-4 w-52 bg-gray-100 rounded-xl"></div>
                         </div>
                     </div>
                 </div>
@@ -442,11 +410,17 @@ export default function ProfilePage() {
 
     if (!user) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <h2 className="text-xl font-semibold text-[#3F3F42] mb-2">Not logged in</h2>
-                    <Link href="/auth/login" className="text-blue-600 hover:underline">
-                        Sign in to view your profile
+            <div className="min-h-screen bg-white flex items-center justify-center p-4">
+                <div className="text-center p-8 max-w-md w-full">
+                    <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">Sign in required</h2>
+                    <p className="text-[#3F3F42] text-sm mb-6">
+                        Please sign in to access your Nothing But Adventures profile.
+                    </p>
+                    <Link
+                        href="/auth/login"
+                        className="inline-block w-full bg-[#1A1A1A] hover:bg-black text-white font-medium py-3 rounded-2xl text-sm transition shadow-sm"
+                    >
+                        Sign In
                     </Link>
                 </div>
             </div>
@@ -454,939 +428,637 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Hero Section */}
-            <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white">
-                <div className="max-w-6xl mx-auto px-4 py-12">
-                    <div className="flex flex-col md:flex-row items-center gap-6">
+        <div className="min-h-screen bg-white font-sans text-[#1A1A1A]">
+            {/* SUB NAVIGATION BAR */}
+            <div className="bg-white">
+                <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-6 md:px-8 xl:px-[35px] pt-4 pb-1">
+                    <nav className="flex items-center gap-6 md:gap-8 overflow-x-auto py-2 text-[13px] md:text-sm font-medium text-gray-500 scrollbar-hide">
+                        <Link href="/trips" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Tours
+                        </Link>
+                        <Link href="/tree-planting" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Trees for Days
+                        </Link>
+                        <Link
+                            href="/profile"
+                            className="text-[#1A1A1A] font-bold whitespace-nowrap"
+                        >
+                            Profile
+                        </Link>
+                        <Link href="/nba-club" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Great Adventurers Club
+                        </Link>
+                        <Link href="/profile/settings" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Settings
+                        </Link>
+                    </nav>
+                </div>
+            </div>
+
+            {/* MAIN CONTAINER */}
+            <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-6 md:px-8 xl:px-[35px] py-10 md:py-12 space-y-12">
+
+                {/* 1. HERO PROFILE SECTION */}
+                <section>
+                    <div>
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1A1A1A] tracking-tight">
+                            {user.name}
+                        </h1>
+                        <p className="text-base md:text-lg text-gray-500 font-normal mt-1.5">
+                            Welcome to your profile
+                        </p>
+                    </div>
+
+                    {/* Traveler Info Row with Avatar & Meta details */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-6 mt-8">
                         {/* Avatar */}
-                        <div className="relative group">
-                            <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/30 overflow-hidden">
+                        <div className="relative group shrink-0 w-24 h-24 sm:w-28 sm:h-28">
+                            <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 shadow-sm">
                                 {user.avatar ? (
                                     <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-white">
-                                        {user.name.charAt(0).toUpperCase()}
+                                    <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-[#1A1A1A] bg-gray-100">
+                                        {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-10 h-10 text-gray-400" />}
                                     </div>
                                 )}
                             </div>
-                            <label className="absolute inset-0 flex items-center justify-center bg-[#3F3F42]/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+
+                            <label
+                                title="Change avatar photo"
+                                className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
                                 {uploadingAvatar ? (
-                                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                 ) : (
-                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
+                                    <div className="flex flex-col items-center text-[10px] font-medium gap-0.5">
+                                        <Camera className="w-4 h-4" />
+                                        <span>Edit</span>
+                                    </div>
                                 )}
-                                <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleAvatarUpload}
+                                    disabled={uploadingAvatar}
+                                />
                             </label>
                         </div>
 
-                        {/* User Info */}
-                        <div className="text-center md:text-left flex-1">
-                            <h1 className="text-3xl font-bold mb-1">{user.name}</h1>
-                            <p className="text-white/80 mb-2">{user.email}</p>
-                            <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium capitalize">
-                                    {user.role}
+                        {/* Metadata Items with Lucide Icons */}
+                        <div className="space-y-2 text-sm text-[#3F3F42]">
+                            <div className="flex items-center gap-2.5">
+                                <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                                <span>
+                                    Lives in{" "}
+                                    <strong className="text-[#1A1A1A] font-semibold">
+                                        {user.nationality ? `${user.nationality}` : "Earth"}
+                                    </strong>
                                 </span>
-                                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
-                                    Member since {formatDate(user.createdAt)}
+                            </div>
+
+                            <div className="flex items-center gap-2.5">
+                                <UserIcon className="w-4 h-4 text-gray-400 shrink-0" />
+                                <span className="font-semibold text-[#1A1A1A]">
+                                    {user.nationality || "Adventurer"}
                                 </span>
                             </div>
-                        </div>
 
-                        {/* Stats */}
-                        <div className="flex gap-8 mt-4 md:mt-0">
-                            <div className="text-center">
-                                <div className="text-3xl font-bold">{bookings.length}</div>
-                                <div className="text-sm text-white/70">Bookings</div>
+                            <div className="flex items-center gap-2.5">
+                                <Clock className="w-4 h-4 text-gray-400 shrink-0" />
+                                <span>Joined on {formatDate(user.createdAt)}</span>
                             </div>
-                            <div className="text-center">
-                                <div className="text-3xl font-bold">{holdSpaces.filter(h => h.status === 'active').length}</div>
-                                <div className="text-sm text-white/70">Holds</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-3xl font-bold">{reviews.length}</div>
-                                <div className="text-sm text-white/70">Reviews</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto px-4">
-                    <div className="flex gap-8 overflow-x-auto pb-2 scrollbar-hide">
-                        {(["overview", "bookings", "lifetime deposits", "hold spaces", "wishlist", "reviews", "nba club", "settings"] as const).map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => handleTabChange(tab)}
-                                className={`py-4 px-1 text-sm font-medium border-b-2 transition-colors capitalize whitespace-nowrap ${activeTab === tab
-                                    ? "border-blue-600 text-blue-600"
-                                    : "border-transparent text-gray-500 hover:text-[#3F3F42]"
-                                    }`}
-                            >
-                                {tab === "nba club" ? "NBA Club" : tab}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Content */}
-            <div className="max-w-6xl mx-auto px-4 py-8">
-                {/* Overview Tab */}
-                {activeTab === "overview" && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Profile Info Card */}
-                        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-lg font-semibold text-[#3F3F42]">Personal Information</h2>
+                            <div className="pt-1.5">
                                 <button
-                                    onClick={() => setIsEditing(!isEditing)}
-                                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                    onClick={() => setIsEditModalOpen(true)}
+                                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-black transition"
                                 >
-                                    {isEditing ? "Cancel" : "Edit"}
+                                    <Pencil className="w-3 h-3 text-gray-400" />
+                                    <span>Edit profile information</span>
                                 </button>
                             </div>
-
-                            {isEditing ? (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-[#3F3F42] mb-1">Full Name</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.name}
-                                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-[#3F3F42] mb-1">Phone</label>
-                                        <input
-                                            type="tel"
-                                            value={editForm.phone}
-                                            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                                            placeholder="+1 234 567 890"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-[#3F3F42] mb-1">Date of Birth</label>
-                                        <input
-                                            type="date"
-                                            value={editForm.dateOfBirth}
-                                            onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-[#3F3F42] mb-1">Nationality</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.nationality}
-                                            onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                                            placeholder="e.g. Indian"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleSaveProfile}
-                                        disabled={saving}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50"
-                                    >
-                                        {saving ? "Saving..." : "Save Changes"}
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <InfoRow label="Email" value={user.email} />
-                                    <InfoRow label="Phone" value={user.phone || "Not provided"} />
-                                    <InfoRow label="Date of Birth" value={user.dateOfBirth ? formatDate(user.dateOfBirth) : "Not provided"} />
-                                    <InfoRow label="Nationality" value={user.nationality || "Not provided"} />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Quick Stats Card */}
-                        <div className="space-y-6">
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                                <h2 className="text-lg font-semibold text-[#3F3F42] mb-4">Travel Stats</h2>
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-gray-600">Total Trips</span>
-                                        <span className="font-semibold text-[#3F3F42]">{bookings.filter(b => b.status === "completed").length}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-gray-600">Upcoming</span>
-                                        <span className="font-semibold text-blue-600">{bookings.filter(b => b.status === "confirmed").length}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-gray-600">Reviews Written</span>
-                                        <span className="font-semibold text-[#3F3F42]">{reviews.length}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Recent Booking Preview */}
-                            {bookings.length > 0 && (
-                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-lg font-semibold text-[#3F3F42]">Latest Booking</h2>
-                                        <button onClick={() => handleTabChange("bookings")} className="text-sm text-blue-600 hover:underline">View all</button>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                                            {bookings[0].tour.images?.[0]?.url ? (
-                                                <img src={bookings[0].tour.images[0].url} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-medium text-[#3F3F42] truncate">{bookings[0].tour.name}</h3>
-                                            <p className="text-sm text-gray-500">{formatDate(bookings[0].startDate)}</p>
-                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-1 ${bookings[0].status === "confirmed" ? "bg-green-100 text-green-700" :
-                                                bookings[0].status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                                                    "bg-gray-100 text-gray-600"
-                                                }`}>
-                                                {bookings[0].status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
+                </section>
+
+
+                {/* 2. CONDITIONAL SECTION: TOURS ON YOUR WISHLIST */}
+                {wishlist.length > 0 && (
+                    <section id="wishlist">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight">
+                                Tours on your wishlist
+                            </h2>
+                            {wishlist.length > 2 && (
+                                <button
+                                    onClick={() => setShowAllWishlist(!showAllWishlist)}
+                                    className="text-xs font-bold text-gray-600 hover:text-black transition"
+                                >
+                                    {showAllWishlist ? "Show Top 2 Only" : `View all (${wishlist.length})`}
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {(showAllWishlist ? wishlist : wishlist.slice(0, 2)).map((tour) => {
+                                const primaryImage = tour.images?.find((img) => img.isPrimary) || tour.images?.[0];
+                                const discountedPrice =
+                                    tour.price.discountPercent > 0
+                                        ? tour.price.amount * (1 - tour.price.discountPercent / 100)
+                                        : tour.price.amount;
+                                const tourUrl = `/trips/${tour.slug}/${tour.tourCode || tour.slug}`;
+
+                                return (
+                                    <div
+                                        key={tour._id}
+                                        className="group relative h-[380px] md:h-[400px] rounded-3xl overflow-hidden shadow-[0_6px_28px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.12)] flex flex-col justify-end p-4 transition-all duration-300"
+                                    >
+                                        {/* Background Tour Photo */}
+                                        {primaryImage?.url ? (
+                                            <img
+                                                src={primaryImage.url}
+                                                alt={tour.name}
+                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                        ) : (
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-sky-400 to-indigo-600"></div>
+                                        )}
+
+                                        {/* Soft gradient overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+
+                                        {/* Overlaid Modern Card at Bottom */}
+                                        <div className="relative z-10 bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
+                                                        {tour.duration?.days || 0} DAY TOUR
+                                                    </span>
+                                                    <Heart className="w-4 h-4 text-[#6A38C2] fill-[#6A38C2]" />
+                                                </div>
+
+                                                <h3 className="text-sm md:text-base font-bold text-[#1A1A1A] leading-snug line-clamp-2">
+                                                    {tour.name}
+                                                </h3>
+                                            </div>
+
+                                            <div className="mt-3 pt-2 flex items-center justify-between">
+                                                <div>
+                                                    <span className="text-base font-black text-[#1A1A1A]">
+                                                        ${Math.round(discountedPrice).toLocaleString()}
+                                                    </span>
+                                                    <span className="text-[11px] text-gray-500 font-medium ml-1">
+                                                        USD <em className="not-italic text-gray-400">per person</em>
+                                                    </span>
+                                                </div>
+
+                                                <Link
+                                                    href={tourUrl}
+                                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#432360] hover:bg-[#321a48] text-white text-xs font-bold shadow-sm hover:shadow transition-all"
+                                                >
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    <span>View tour</span>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
                 )}
 
 
-
-                {/* Bookings Tab */}
-                {activeTab === "bookings" && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-                        <div className="p-6 border-b border-gray-100">
-                            <h2 className="text-lg font-semibold text-[#3F3F42]">My Bookings</h2>
-                            <p className="text-sm text-gray-500 mt-1">{bookings.length} total bookings</p>
+                {/* 3. CONDITIONAL SECTION: YOUR BOOKINGS */}
+                {bookings.length > 0 && (
+                    <section id="bookings">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight">
+                                Your Bookings
+                            </h2>
+                            {bookings.length > 1 && (
+                                <button
+                                    onClick={() => setShowAllBookings(!showAllBookings)}
+                                    className="text-xs font-bold text-gray-600 hover:text-black transition"
+                                >
+                                    {showAllBookings ? "Show Recent Only" : `View all (${bookings.length})`}
+                                </button>
+                            )}
                         </div>
-                        {bookings.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <h3 className="font-medium text-[#3F3F42] mb-1">No bookings yet</h3>
-                                <p className="text-gray-500 mb-4">Start exploring our amazing trips!</p>
-                                <Link href="/trips" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition">
-                                    Explore Trips
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-gray-100">
-                                {bookings.map((booking) => (
+
+                        <div className="space-y-4">
+                            {(showAllBookings ? bookings : bookings.slice(0, 1)).map((booking) => {
+                                const tour = booking.tour || {};
+                                const primaryImg = tour.images?.[0]?.url || "";
+
+                                return (
                                     <div
                                         key={booking._id}
-                                        className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
-                                        onClick={() => setSelectedBooking(booking)}
+                                        className="bg-white rounded-3xl p-5 md:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-6"
                                     >
-                                        <div className="flex flex-col md:flex-row md:items-center gap-4">
-                                            <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                                                {booking.tour.images?.[0]?.url ? (
-                                                    <img src={booking.tour.images[0].url} alt="" className="w-full h-full object-cover" />
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-100 overflow-hidden shrink-0 shadow-sm">
+                                                {primaryImg ? (
+                                                    <img src={primaryImg} alt={tour.name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                        </svg>
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                                        <Compass className="w-8 h-8" />
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <Link href={`/trips/${booking.tour.slug}/${booking.tour.tourCode}`} className="font-semibold text-[#3F3F42] hover:text-blue-600 transition-colors">
-                                                            {booking.tour.name}
-                                                        </Link>
-                                                        <p className="text-sm text-gray-500 mt-1">
-                                                            Ref: {booking.bookingReference} • {booking.numberOfTravelers} traveler{booking.numberOfTravelers > 1 ? "s" : ""}
-                                                        </p>
-                                                    </div>
-                                                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${booking.status === "confirmed" ? "bg-green-100 text-green-700" :
-                                                        booking.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                                                            booking.status === "completed" ? "bg-blue-100 text-blue-700" :
-                                                                booking.status === "cancelled" ? "bg-red-100 text-red-700" :
-                                                                    "bg-gray-100 text-gray-600"
-                                                        }`}>
+
+                                            <div>
+                                                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                                                    <span
+                                                        className={`px-3 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider ${booking.status === "confirmed"
+                                                            ? "bg-emerald-50 text-emerald-700"
+                                                            : booking.status === "pending"
+                                                                ? "bg-amber-50 text-amber-700"
+                                                                : booking.status === "cancelled"
+                                                                    ? "bg-rose-50 text-rose-700"
+                                                                    : "bg-gray-100 text-gray-700"
+                                                            }`}
+                                                    >
                                                         {booking.status}
                                                     </span>
-                                                </div>
-                                                <div className="flex items-center gap-4 mt-3 text-sm">
-                                                    <span className="text-gray-600">
-                                                        <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                        </svg>
-                                                        {formatDate(booking.startDate)}
-                                                    </span>
-                                                    <span className="font-semibold text-[#3F3F42] flex items-center gap-2">
-                                                        {booking.price.currency} {booking.price.totalPrice.toLocaleString()}
-                                                        {booking.installmentPlan?.isActive && (
-                                                            <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-200">
-                                                                EMI ACTIVE
-                                                            </span>
-                                                        )}
+                                                    <span className="text-xs text-gray-400 font-mono bg-gray-50 px-2.5 py-0.5 rounded-lg">
+                                                        Ref: {booking.bookingReference}
                                                     </span>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
 
-                {/* Lifetime Deposits Tab */}
-                {activeTab === "lifetime deposits" && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-                        <div className="p-6 border-b border-gray-100">
-                            <h2 className="text-lg font-semibold text-[#3F3F42]">Lifetime Deposits</h2>
-                            <p className="text-sm text-gray-500 mt-1">
-                                {lifetimeDeposits.filter(d => d.status === 'active').length} active deposit vouchers available
-                            </p>
-                        </div>
-                        {lifetimeDeposits.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <span className="text-gray-400 text-4xl block mb-3">🎫</span>
-                                <h3 className="font-medium text-[#3F3F42] mb-1">No Lifetime Deposits</h3>
-                                <p className="text-sm text-gray-500 max-w-sm mx-auto">
-                                    Lifetime Deposits are issued when you cancel a booking according to our cancellation policies.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="p-6 divide-y divide-gray-100">
-                                {lifetimeDeposits.map((deposit) => (
-                                    <div key={deposit._id} className="py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 first:pt-0 last:pb-0">
-                                        <div className="flex-grow">
-                                            <div className="flex items-center gap-2.5">
-                                                <span className="font-mono font-bold text-lg text-[#432360] bg-purple-50 border border-purple-100 px-3 py-1 rounded-lg">
-                                                    {deposit.code}
-                                                </span>
-                                                <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
-                                                    deposit.status === "active" ? "bg-green-100 text-green-700" :
-                                                    deposit.status === "used" ? "bg-blue-100 text-blue-700" :
-                                                    "bg-red-100 text-red-700"
-                                                }`}>
-                                                    {deposit.status}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-gray-600 mt-2.5">
-                                                Traveler: <strong>{deposit.travelerName}</strong>
-                                            </p>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Origin: {deposit.originalTour?.name || "Cancelled Tour"} (Ref: {deposit.originalBooking?.bookingReference || "N/A"})
-                                            </p>
-                                        </div>
-                                        <div className="text-left md:text-right flex-shrink-0">
-                                            <div className="text-2xl font-black text-gray-900">
-                                                ${deposit.amount.toLocaleString()}
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                Issued: {new Date(deposit.createdAt).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                                                <h3 className="text-base sm:text-lg font-bold text-[#1A1A1A]">
+                                                    {tour.name || "Booked Adventure"}
+                                                </h3>
 
-                {/* Hold Spaces Tab */}
-                {activeTab === "hold spaces" && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-                        <div className="p-6 border-b border-gray-100">
-                            <h2 className="text-lg font-semibold text-[#3F3F42]">Hold Spaces</h2>
-                            <p className="text-sm text-gray-500 mt-1">{holdSpaces.filter(h => h.status === 'active').length} active holds</p>
-                        </div>
-                        {holdSpaces.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <div className="text-5xl mb-4">🔒</div>
-                                <h3 className="font-medium text-[#3F3F42] mb-1">No held spaces</h3>
-                                <p className="text-gray-500">Hold a trip date for 48 hours without payment!</p>
-                                <button
-                                    onClick={() => router.push('/search')}
-                                    className="mt-4 px-6 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition"
-                                >
-                                    Browse Trips
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-gray-100">
-                                {holdSpaces.map((hold) => {
-                                    const isActive = hold.status === 'active' && new Date(hold.expiresAt) > new Date();
-                                    const isExpired = hold.status === 'expired' || (hold.status === 'active' && new Date(hold.expiresAt) <= new Date());
-                                    const remaining = isActive ? new Date(hold.expiresAt).getTime() - Date.now() : 0;
-                                    const hoursLeft = Math.floor(remaining / (1000 * 60 * 60));
-                                    const minutesLeft = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                                    const secondsLeft = Math.floor((remaining % (1000 * 60)) / 1000);
-
-                                    return (
-                                        <div key={hold._id} className={`p-6 ${isActive ? 'hover:bg-amber-50/30' : 'opacity-60'} transition-colors`}>
-                                            <div className="flex items-start gap-4">
-                                                {/* Tour Image */}
-                                                <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative bg-gray-100">
-                                                    {hold.tour?.images?.[0] ? (
-                                                        <img
-                                                            src={hold.tour.images[0].url}
-                                                            alt={hold.tour.name}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl">🏔️</div>
-                                                    )}
-                                                </div>
-
-                                                {/* Hold Details */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div>
-                                                            <h3 className="font-semibold text-[#3F3F42] text-sm truncate">
-                                                                {hold.tour?.name || 'Tour'}
-                                                            </h3>
-                                                            <p className="text-xs text-gray-500 mt-0.5">
-                                                                Departure: {formatDate(hold.startDate)}
-                                                            </p>
-                                                        </div>
-                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${isActive
-                                                            ? 'bg-amber-100 text-amber-700'
-                                                            : hold.status === 'converted'
-                                                                ? 'bg-green-100 text-green-700'
-                                                                : hold.status === 'released'
-                                                                    ? 'bg-gray-100 text-gray-600'
-                                                                    : 'bg-red-100 text-red-600'
-                                                            }`}>
-                                                            {isExpired ? '⏰ Expired' : hold.status === 'active' ? '🔒 Active' : hold.status === 'converted' ? '✓ Booked' : '↩ Released'}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Countdown Timer */}
-                                                    {isActive && (
-                                                        <div className="mt-2 flex items-center gap-2">
-                                                            <div className="flex items-center gap-1 text-xs">
-                                                                <span className="text-amber-600">⏱️</span>
-                                                                <span className="font-semibold text-amber-700">{hoursLeft}h {minutesLeft}m {secondsLeft}s remaining</span>
-                                                            </div>
-                                                            <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-                                                                <div
-                                                                    className="bg-gradient-to-r from-amber-400 to-orange-500 h-1.5 rounded-full transition-all"
-                                                                    style={{ width: `${Math.min(100, (remaining / (48 * 60 * 60 * 1000)) * 100)}%` }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex items-center gap-3 mt-3">
-                                                        <span className="text-xs text-gray-500">Ref: {hold.holdReference}</span>
-                                                        <span className="text-xs text-gray-400">•</span>
-                                                        <span className="text-xs font-semibold text-[#3F3F42]">
-                                                            ${hold.priceAtHold?.amount?.toLocaleString() || '—'} / person
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Actions */}
-                                                    <div className="flex items-center gap-2 mt-3 flex-wrap">
-                                                        <button
-                                                            onClick={() => setSelectedHoldSpace(hold)}
-                                                            className="px-4 py-1.5 bg-[#6A38C2] text-white text-xs font-semibold rounded-lg hover:bg-purple-900 transition shadow-sm"
-                                                        >
-                                                            View Details
-                                                        </button>
-                                                        {isActive && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const tourCode = hold.tour?.tourCode || "tour";
-                                                                        const dateStr = hold.startDate ? new Date(hold.startDate).toISOString().split('T')[0] : '';
-                                                                        router.push(`/trips/${hold.tour?.slug}/${tourCode}/checkout?date=${dateStr}&holdId=${hold._id}`);
-                                                                    }}
-                                                                    className="px-4 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition shadow-sm"
-                                                                >
-                                                                    Book Now
-                                                                </button>
-                                                                <button
-                                                                    onClick={async (e) => {
-                                                                        e.stopPropagation();
-                                                                        setReleasingHold(hold._id);
-                                                                        try {
-                                                                            const token = localStorage.getItem('token');
-                                                                            const res = await fetch(`${api.baseURL}/hold-spaces/${hold._id}/release`, {
-                                                                                method: 'PATCH',
-                                                                                headers: { Authorization: `Bearer ${token}` },
-                                                                            });
-                                                                            if (res.ok) {
-                                                                                setHoldSpaces(prev => prev.map(h => h._id === hold._id ? { ...h, status: 'released' } : h));
-                                                                            }
-                                                                        } catch (err) {
-                                                                            console.error('Failed to release hold:', err);
-                                                                        } finally {
-                                                                            setReleasingHold(null);
-                                                                        }
-                                                                    }}
-                                                                    disabled={releasingHold === hold._id}
-                                                                    className="px-4 py-1.5 bg-white border border-gray-300 text-[#3F3F42] text-xs font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm disabled:opacity-50"
-                                                                >
-                                                                    {releasingHold === hold._id ? 'Releasing...' : 'Release Hold'}
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
+                                                <div className="flex items-center gap-4 text-xs font-medium text-gray-500 mt-1.5">
+                                                    <span className="flex items-center gap-1.5">
+                                                        <CalendarDays className="w-3.5 h-3.5 text-gray-400" />
+                                                        <span>{formatDate(booking.startDate)}</span>
+                                                    </span>
+                                                    <span>•</span>
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Users className="w-3.5 h-3.5 text-gray-400" />
+                                                        <span>{booking.numberOfTravelers} traveler{booking.numberOfTravelers > 1 ? "s" : ""}</span>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
 
-                {/* Wishlist Tab */}
-                {activeTab === "wishlist" && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-                        <div className="p-6 border-b border-gray-100">
-                            <h2 className="text-lg font-semibold text-[#3F3F42]">My Wishlist</h2>
-                            <p className="text-sm text-gray-500 mt-1">{wishlist.length} saved tours</p>
-                        </div>
-                        {wishlist.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <svg
-                                    className="w-16 h-16 text-gray-300 mx-auto mb-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={1}
-                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                    />
-                                </svg>
-                                <h3 className="font-medium text-[#3F3F42] mb-1">Your wishlist is empty</h3>
-                                <p className="text-gray-500 mb-4">Start exploring our tours to find your dream adventure!</p>
-                                <Link
-                                    href="/tours"
-                                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition"
-                                >
-                                    Explore Tours
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {wishlist.map((tour) => {
-                                    const primaryImage =
-                                        tour.images?.find((img) => img.isPrimary) || tour.images?.[0];
-                                    const discountedPrice =
-                                        tour.price.discountPercent > 0
-                                            ? tour.price.amount * (1 - tour.price.discountPercent / 100)
-                                            : tour.price.amount;
-
-                                    return (
-                                        <Link href={`/trips/${tour.slug}/${tour.tourCode}`} key={tour._id}>
-                                            <div className="group bg-white border rounded-xl overflow-hidden transition-all duration-300 transform cursor-pointer h-full flex flex-col hover:shadow-lg">
-                                                {/* Image Container */}
-                                                <div className="relative w-full h-48 overflow-hidden bg-gray-100">
-                                                    {primaryImage?.url ? (
-                                                        <div className="relative w-full h-full">
-                                                            <img
-                                                                src={primaryImage.url}
-                                                                alt={primaryImage.caption || tour.name}
-                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                                            <svg
-                                                                className="w-12 h-12 text-gray-400"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={1}
-                                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                                                />
-                                                            </svg>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Content */}
-                                                <div className="p-4 flex-1 flex flex-col">
-                                                    {/* Duration Badge */}
-                                                    <div className="mb-2">
-                                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                                                            {tour.duration.days} DAYS
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Tour Name */}
-                                                    <h3 className="text-base font-bold text-[#3F3F42] mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
-                                                        {tour.name}
-                                                    </h3>
-
-                                                    {/* Spacing for push to bottom */}
-                                                    <div className="flex-1"></div>
-
-                                                    {/* Price Section */}
-                                                    <div className="flex items-baseline gap-1.5 mb-3">
-                                                        <span className="text-lg font-bold text-[#3F3F42]">
-                                                            ${Math.round(discountedPrice)}
-                                                        </span>
-                                                        <span className="text-xs text-gray-500">per person</span>
-                                                    </div>
-
-                                                    {/* CTA Button */}
-                                                    <button className="w-full bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm font-medium py-1.5 px-3 rounded-lg transition-all duration-200">
-                                                        View Details
-                                                    </button>
+                                        <div className="flex items-center justify-between md:justify-end gap-6 shrink-0 pt-2 md:pt-0">
+                                            <div className="text-left md:text-right">
+                                                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-0.5">Total</span>
+                                                <div className="text-xl font-black text-[#1A1A1A]">
+                                                    ${booking.price?.totalPrice?.toLocaleString() || "0"}{" "}
+                                                    <span className="text-xs font-bold text-gray-500">USD</span>
                                                 </div>
                                             </div>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
 
-
-                {/* Reviews Tab */}
-                {
-                    activeTab === "reviews" && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-                            <div className="p-6 border-b border-gray-100">
-                                <h2 className="text-lg font-semibold text-[#3F3F42]">My Reviews</h2>
-                                <p className="text-sm text-gray-500 mt-1">{reviews.length} reviews written</p>
-                            </div>
-                            {reviews.length === 0 ? (
-                                <div className="p-12 text-center">
-                                    <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                                    </svg>
-                                    <h3 className="font-medium text-[#3F3F42] mb-1">No reviews yet</h3>
-                                    <p className="text-gray-500">Complete a tour to leave a review!</p>
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-gray-100">
-                                    {reviews.map((review) => (
-                                        <div key={review._id} className="p-6">
-                                            <div className="flex items-start justify-between mb-3">
-                                                <Link href={`/trips/${review.tour.slug}/${review.tour.tourCode}`} className="font-medium text-[#3F3F42] hover:text-blue-600 transition-colors">
-                                                    {review.tour.name}
-                                                </Link>
-                                                <div className="flex items-center gap-1">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <svg
-                                                            key={i}
-                                                            className={`w-4 h-4 ${i < review.rating ? "text-yellow-400" : "text-gray-200"}`}
-                                                            fill="currentColor"
-                                                            viewBox="0 0 20 20"
-                                                        >
-                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                        </svg>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <p className="text-gray-600 text-sm">{review.review}</p>
-                                            <p className="text-xs text-gray-400 mt-2">{formatDate(review.createdAt)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )
-                }
-
-
-
-                {/* NBA Club Tab */}
-                {
-                    activeTab === "nba club" && (
-                        <div className="max-w-4xl mx-auto space-y-8">
-                            {/* Wallet & Status Card */}
-                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-3xl p-8 shadow-xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-                                <div className="relative z-10">
-                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-                                        <div>
-                                            <h2 className="text-3xl font-bold mb-2">NBA Club Membership</h2>
-                                            <p className="text-gray-400">Unlock exclusive rewards as you travel</p>
-                                        </div>
-                                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 min-w-[200px] border border-white/20">
-                                            <p className="text-sm text-gray-300 font-medium mb-1">Wallet Balance</p>
-                                            <div className="text-3xl font-bold text-amber-400 flex items-center">
-                                                <span className="text-xl mr-1">$</span>
-                                                {(user.walletBalance || 0).toLocaleString()}
-                                            </div>
-                                            {user.walletExpiresAt && (
-                                                <p className="text-xs text-red-500 font-semibold mt-1">
-                                                    Expires {new Date(user.walletExpiresAt).toLocaleDateString()}
-                                                </p>
-                                            )}
-                                            <p className="text-xs text-gray-400 mt-2">Available for your next adventure</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Progress Bar logic */}
-                                    {(() => {
-                                        const completedTours = bookings.filter(b => b.status === "completed" || b.status === "confirmed").length; // Include confirmed for now to show progress
-                                        const levels = [
-                                            { name: "Explorer", min: 0, max: 3, next: 4, credit: 0 },
-                                            { name: "Silver Traveler", min: 4, max: 9, next: 10, credit: 100 },
-                                            { name: "Gold Explorer", min: 10, max: 14, next: 15, credit: 150 },
-                                            { name: "Platinum Adventurer", min: 15, max: Infinity, next: null, credit: 250 }
-                                        ];
-
-                                        const currentLevel = levels.find(l => completedTours >= l.min && completedTours <= l.max) || levels[levels.length - 1];
-                                        const nextLevel = levels[levels.indexOf(currentLevel) + 1];
-                                        const progress = nextLevel
-                                            ? ((completedTours - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100
-                                            : 100;
-
-                                        return (
-                                            <div>
-                                                <div className="flex justify-between items-end mb-3">
-                                                    <div>
-                                                        <p className="text-sm text-gray-300 mb-1">Current Status</p>
-                                                        <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">
-                                                            {currentLevel.name}
-                                                        </h3>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-2xl font-bold">{completedTours}</p>
-                                                        <p className="text-xs text-gray-400">Total Tours Completed</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Progress Bar */}
-                                                <div className="h-4 bg-[#3F3F42]/50 rounded-full overflow-hidden mb-2 border border-white/10">
-                                                    <div
-                                                        className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-amber-500 transition-all duration-1000 ease-out relative"
-                                                        style={{ width: `${Math.min(100, Math.max(0, nextLevel ? ((completedTours / nextLevel.min) * 100) : 100))}%` }}
-                                                    >
-                                                        <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]"></div>
-                                                    </div>
-                                                </div>
-
-                                                {nextLevel && (
-                                                    <p className="text-sm text-gray-400 text-center">
-                                                        {nextLevel.min - completedTours} more tours to reach <span className="text-white font-semibold">{nextLevel.name}</span>
-                                                    </p>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-                            </div>
-
-                            {/* Benefits Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-transform">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <span className="text-6xl">🥈</span>
-                                    </div>
-                                    <h3 className="text-lg font-bold text-[#3F3F42] mb-1">Silver Traveler</h3>
-                                    <p className="text-sm text-blue-600 font-semibold mb-4">4-9 Tours</p>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center text-sm text-gray-600">
-                                            <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs mr-3">✓</span>
-                                            Balance Topped Up to <span className="font-bold ml-1">$100 USD</span>
-                                        </li>
-                                        <li className="flex items-center text-sm text-gray-600">
-                                            <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs mr-3">✓</span>
-                                            Early Access to Deals
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                <div className="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-transform bg-gradient-to-b from-amber-50/50 to-white">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <span className="text-6xl">🥇</span>
-                                    </div>
-                                    <div className="absolute -top-3 -right-3 bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rotate-12 shadow-sm">POPULAR</div>
-                                    <h3 className="text-lg font-bold text-[#3F3F42] mb-1">Gold Explorer</h3>
-                                    <p className="text-sm text-amber-600 font-semibold mb-4">10-14 Tours</p>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center text-sm text-gray-600">
-                                            <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs mr-3">✓</span>
-                                            Balance Topped Up to <span className="font-bold ml-1">$150 USD</span>
-                                        </li>
-                                        <li className="flex items-center text-sm text-gray-600">
-                                            <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs mr-3">✓</span>
-                                            Priority Support
-                                        </li>
-                                        <li className="flex items-center text-sm text-gray-600">
-                                            <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs mr-3">✓</span>
-                                            Free Cancellation Flex
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                <div className="bg-[#3F3F42] text-white rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-transform">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <span className="text-6xl">💎</span>
-                                    </div>
-                                    <h3 className="text-lg font-bold text-white mb-1">Platinum Adventurer</h3>
-                                    <p className="text-sm text-blue-400 font-semibold mb-4">15+ Tours</p>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center text-sm text-gray-300">
-                                            <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs mr-3">✓</span>
-                                            Balance Topped Up to <span className="font-bold text-white ml-1">$250 USD</span>
-                                        </li>
-                                        <li className="flex items-center text-sm text-gray-300">
-                                            <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs mr-3">✓</span>
-                                            Private Concierge
-                                        </li>
-                                        <li className="flex items-center text-sm text-gray-300">
-                                            <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs mr-3">✓</span>
-                                            Exclusive Events Invite
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            {/* Fine Print */}
-                            <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
-                                <div className="flex gap-4 items-start">
-                                    <div className="flex-shrink-0 text-blue-500 mt-1">
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <h4 className="text-base font-semibold text-blue-900">Credit Usage & Validity</h4>
-                                        <ul className="list-disc list-outside ml-4 space-y-2 text-sm text-blue-800">
-                                            <li>
-                                                <span className="font-semibold">Booking Window:</span> Credit must be used to book a tour within <span className="font-semibold">12 months</span> from the issue date.
-                                            </li>
-                                            <li>
-                                                <span className="font-semibold">Departure Window:</span> The selected tour must depart within <span className="font-semibold">24 months</span> from the credit issue date.
-                                            </li>
-                                            <li>
-                                                <span className="font-semibold">Single Use Only:</span> Credits cannot be stacked. Only one credit can be applied per tour booking.
-                                            </li>
-                                            <li>
-                                                <span className="font-semibold">Top-Up Logic:</span> Members earn credits upon returning home from a milestone tour. If your current balance is lower than the new milestone credit, your account will be <span className="font-semibold">topped up</span> to reach the new total (e.g., $50 current + $100 top-up = $150 total). Any unused balance gets refreshed with the new credit&apos;s validity period.
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
-
-                {/* Settings Tab */}
-                {
-                    activeTab === "settings" && (
-                        <div className="max-w-2xl">
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-                                <h2 className="text-lg font-semibold text-[#3F3F42] mb-4">Account Settings</h2>
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                                        <div>
-                                            <h3 className="font-medium text-[#3F3F42]">Email Address</h3>
-                                            <p className="text-sm text-gray-500">{user.email}</p>
-                                        </div>
-                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Verified</span>
-                                    </div>
-                                    <div className="py-3">
-                                        <h3 className="font-medium text-[#3F3F42] mb-4">Change Password</h3>
-                                        <div className="space-y-3">
-                                            <input
-                                                type="password"
-                                                placeholder="Current Password"
-                                                value={passwordForm.currentPassword}
-                                                onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                                                className="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                                            />
-                                            <input
-                                                type="password"
-                                                placeholder="New Password"
-                                                value={passwordForm.newPassword}
-                                                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                                                className="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                                            />
-                                            <input
-                                                type="password"
-                                                placeholder="Confirm New Password"
-                                                value={passwordForm.confirmPassword}
-                                                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                                                className="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                                            />
                                             <button
-                                                onClick={handlePasswordChange}
-                                                disabled={changingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
-                                                className="w-full bg-[#3F3F42] hover:bg-[#3F3F42] text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                                onClick={() => setSelectedBooking(booking)}
+                                                className="px-6 py-2.5 rounded-full bg-[#432360] hover:bg-[#321a48] text-white text-xs font-bold shadow-md hover:shadow-lg transition-all"
                                             >
-                                                {changingPassword ? "Updating..." : "Update Password"}
+                                                Manage Booking
                                             </button>
                                         </div>
                                     </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+                )}
+
+
+                {/* 4. CONDITIONAL SECTION: ACTIVE HOLD SPACES */}
+                {activeHolds.length > 0 && (
+                    <section id="hold-spaces">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight">
+                                Active Hold Spaces
+                            </h2>
+                            {activeHolds.length > 1 && (
+                                <button
+                                    onClick={() => setShowAllHolds(!showAllHolds)}
+                                    className="text-xs font-bold text-gray-600 hover:text-black transition"
+                                >
+                                    {showAllHolds ? "Show Recent Only" : `View all (${activeHolds.length})`}
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="space-y-4">
+                            {(showAllHolds ? activeHolds : activeHolds.slice(0, 1)).map((hold) => {
+                                const remaining = Math.max(0, new Date(hold.expiresAt).getTime() - Date.now());
+                                const hoursLeft = Math.floor(remaining / (1000 * 60 * 60));
+                                const minutesLeft = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                                const tourUrl = `/trips/${hold.tour?.slug}/${hold.tour?.tourCode || hold.tour?.slug}/checkout?date=${hold.startDate ? new Date(hold.startDate).toISOString().split('T')[0] : ''}&holdId=${hold._id}`;
+
+                                return (
+                                    <div
+                                        key={hold._id}
+                                        className="bg-white rounded-3xl p-5 md:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-6"
+                                    >
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 uppercase">
+                                                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                                                    <span>{hoursLeft}h {minutesLeft}m Left</span>
+                                                </span>
+                                                <span className="text-xs text-gray-400 font-mono bg-gray-50 px-2.5 py-0.5 rounded-lg">
+                                                    Ref: {hold.holdReference}
+                                                </span>
+                                            </div>
+                                            <h3 className="text-base sm:text-lg font-bold text-[#1A1A1A]">
+                                                {hold.tour?.name || "Held Tour"}
+                                            </h3>
+                                            <p className="text-xs text-gray-500 font-medium mt-1">
+                                                Departure: <strong>{formatDate(hold.startDate)}</strong> • Locked Price: ${hold.priceAtHold?.amount?.toLocaleString()} USD / person
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => setSelectedHoldSpace(hold)}
+                                                className="px-4 py-2.5 rounded-full bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-800 transition"
+                                            >
+                                                Details
+                                            </button>
+                                            <button
+                                                onClick={() => router.push(tourUrl)}
+                                                className="px-5 py-2.5 rounded-full bg-[#432360] hover:bg-[#321a48] text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center gap-1.5"
+                                            >
+                                                <span>Complete Booking</span>
+                                                <ArrowRight className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm("Release this hold space?")) return;
+                                                    setReleasingHold(hold._id);
+                                                    try {
+                                                        const token = localStorage.getItem("token");
+                                                        const res = await fetch(`${api.baseURL}/hold-spaces/${hold._id}/release`, {
+                                                            method: "PATCH",
+                                                            headers: { Authorization: `Bearer ${token}` },
+                                                        });
+                                                        if (res.ok) {
+                                                            setHoldSpaces((prev) =>
+                                                                prev.map((h) => (h._id === hold._id ? { ...h, status: "released" } : h))
+                                                            );
+                                                        }
+                                                    } finally {
+                                                        setReleasingHold(null);
+                                                    }
+                                                }}
+                                                disabled={releasingHold === hold._id}
+                                                className="text-xs text-gray-400 hover:text-rose-600 font-semibold transition disabled:opacity-50"
+                                            >
+                                                Release
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+                )}
+
+
+                {/* 5. CONDITIONAL SECTION: LIFETIME DEPOSITS */}
+                {activeDeposits.length > 0 && (
+                    <section id="lifetime-deposits">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight">
+                                Lifetime Deposit Vouchers
+                            </h2>
+                            {activeDeposits.length > 1 && (
+                                <button
+                                    onClick={() => setShowAllDeposits(!showAllDeposits)}
+                                    className="text-xs font-bold text-gray-600 hover:text-black transition"
+                                >
+                                    {showAllDeposits ? "Show Recent Only" : `View all (${activeDeposits.length})`}
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="space-y-4">
+                            {(showAllDeposits ? activeDeposits : activeDeposits.slice(0, 1)).map((deposit) => {
+                                const isCopied = copiedDepositCode === deposit.code;
+
+                                return (
+                                    <div
+                                        key={deposit._id}
+                                        className="bg-white rounded-3xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-300"
+                                    >
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="font-mono font-bold text-sm bg-purple-50 text-[#6A38C2] px-3.5 py-1 rounded-xl flex items-center gap-1.5">
+                                                    <Ticket className="w-3.5 h-3.5 text-[#6A38C2]" />
+                                                    <span>{deposit.code}</span>
+                                                </span>
+                                                <button
+                                                    onClick={() => copyToClipboard(deposit.code)}
+                                                    className="inline-flex items-center gap-1 text-xs font-bold text-[#6A38C2] hover:text-[#432360] transition"
+                                                >
+                                                    {isCopied ? (
+                                                        <>
+                                                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                                            <span className="text-emerald-600">Copied</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Copy className="w-3.5 h-3.5" />
+                                                            <span>Copy Code</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 font-medium mt-1">
+                                                Origin: <strong>{deposit.originalTour?.name || "Cancelled Tour"}</strong> • Issued: {formatDate(deposit.createdAt)}
+                                            </p>
+                                        </div>
+
+                                        <div className="text-left md:text-right">
+                                            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-0.5">Credit Amount</span>
+                                            <div className="text-xl font-black text-emerald-600">
+                                                ${deposit.amount?.toLocaleString()}{" "}
+                                                <span className="text-xs font-bold text-gray-500">USD</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+                )}
+
+
+                {/* 6. CONDITIONAL SECTION: TRAVEL REVIEWS */}
+                {reviews.length > 0 && (
+                    <section id="reviews">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight">
+                                Your Reviews
+                            </h2>
+                            {reviews.length > 1 && (
+                                <button
+                                    onClick={() => setShowAllReviews(!showAllReviews)}
+                                    className="text-xs font-bold text-gray-600 hover:text-black transition"
+                                >
+                                    {showAllReviews ? "Show Recent Only" : `View all (${reviews.length})`}
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="space-y-4">
+                            {(showAllReviews ? reviews : reviews.slice(0, 1)).map((review) => (
+                                <div
+                                    key={review._id}
+                                    className="bg-white rounded-3xl p-5 md:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-300"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="font-bold text-sm sm:text-base text-[#1A1A1A]">
+                                            {review.tour.name}
+                                        </h3>
+                                        <div className="flex text-amber-400 gap-0.5">
+                                            {[...Array(review.rating)].map((_, i) => (
+                                                <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <p className="text-xs md:text-sm text-gray-600 italic leading-relaxed">
+                                        &ldquo;{review.review}&rdquo;
+                                    </p>
+                                    <span className="text-[10px] text-gray-400 mt-2 block font-medium">
+                                        {formatDate(review.createdAt)}
+                                    </span>
                                 </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+
+                {/* 7. FALLBACK / EXPLORATION CARD IF PROFILE HAS NO CONTENT */}
+                {!hasAnyContent && (
+                    <section className="bg-white rounded-3xl p-8 md:p-12 text-center max-w-2xl mx-auto shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+                        <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#1A1A1A]">
+                            <Compass className="w-7 h-7 text-gray-700" />
+                        </div>
+                        <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] mb-2">
+                            Ready for your next grand adventure?
+                        </h2>
+                        <p className="text-xs md:text-sm text-gray-500 leading-relaxed mb-6">
+                            You don&apos;t have any active bookings or saved wishlist items yet. Discover hand-curated expeditions across Patagonia, the Himalayas, Africa, and beyond.
+                        </p>
+                        <Link
+                            href="/trips"
+                            className="inline-block bg-[#432360] hover:bg-[#321a48] text-white text-xs font-bold py-3 px-8 rounded-full transition shadow-md"
+                        >
+                            Explore All Tours
+                        </Link>
+                    </section>
+                )}
+
+            </div>
+
+
+            {/* EDIT PROFILE MODAL */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+                        <div className="flex items-center justify-between pb-3">
+                            <h3 className="text-lg font-bold text-[#1A1A1A]">Edit Profile Details</h3>
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveProfile} className="space-y-4 mt-3 text-xs">
+                            <div>
+                                <label className="block font-bold text-[#1A1A1A] mb-1.5">Full Legal Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#F8F9FA] focus:bg-white focus:ring-2 focus:ring-[#432360]/20 text-sm outline-none transition"
+                                />
                             </div>
 
-                            <div className="bg-red-50 rounded-2xl border border-red-100 p-6">
-                                <h2 className="text-lg font-semibold text-red-900 mb-2">Danger Zone</h2>
-                                <p className="text-sm text-red-700 mb-4">Once you delete your account, there is no going back. Please be certain.</p>
-                                <button className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition text-sm">
-                                    Delete Account
+                            <div>
+                                <label className="block font-bold text-[#1A1A1A] mb-1.5">Phone</label>
+                                <input
+                                    type="tel"
+                                    value={editForm.phone}
+                                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                    placeholder="+1 555-000-0000"
+                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#F8F9FA] focus:bg-white focus:ring-2 focus:ring-[#432360]/20 text-sm outline-none transition"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block font-bold text-[#1A1A1A] mb-1.5">Nationality / Country</label>
+                                <input
+                                    type="text"
+                                    value={editForm.nationality}
+                                    onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
+                                    placeholder="e.g. Indian, Canadian, British"
+                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#F8F9FA] focus:bg-white focus:ring-2 focus:ring-[#432360]/20 text-sm outline-none transition"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block font-bold text-[#1A1A1A] mb-1.5">Date of Birth</label>
+                                <input
+                                    type="date"
+                                    value={editForm.dateOfBirth}
+                                    onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#F8F9FA] focus:bg-white focus:ring-2 focus:ring-[#432360]/20 text-sm outline-none transition"
+                                />
+                            </div>
+
+                            <div className="pt-3 flex items-center justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="px-4 py-2 rounded-full text-gray-600 hover:bg-gray-100 font-semibold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="px-6 py-2.5 rounded-full bg-[#432360] hover:bg-[#321a48] text-white font-bold disabled:opacity-50 shadow-sm transition"
+                                >
+                                    {saving ? "Saving..." : "Save"}
                                 </button>
                             </div>
-                        </div>
-                    )
-                }
-            </div >
+                        </form>
+                    </div>
+                </div>
+            )}
 
-            {/* Booking Details Modal */}
-            {
-                selectedBooking && (
-                    <BookingDetailsModal
-                        booking={selectedBooking as any}
-                        onClose={() => setSelectedBooking(null)}
-                        onBookingUpdated={() => fetchUserData()}
-                    />
-                )
-            }
 
-            {/* Hold Space Details Modal */}
-            {
-                selectedHoldSpace && (
-                    <HoldSpaceDetailsModal
-                        hold={selectedHoldSpace as any}
-                        onClose={() => setSelectedHoldSpace(null)}
-                        onHoldUpdated={() => fetchUserData()}
-                    />
-                )
-            }
-        </div >
-    );
-}
+            {/* BOOKING DETAILS MODAL */}
+            {selectedBooking && (
+                <BookingDetailsModal
+                    booking={selectedBooking as any}
+                    onClose={() => setSelectedBooking(null)}
+                    onBookingUpdated={() => fetchUserData()}
+                />
+            )}
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="flex flex-col sm:flex-row sm:items-center py-2">
-            <span className="text-sm text-gray-500 w-32 flex-shrink-0">{label}</span>
-            <span className="text-[#3F3F42] font-medium">{value}</span>
+            {/* HOLD SPACE DETAILS MODAL */}
+            {selectedHoldSpace && (
+                <HoldSpaceDetailsModal
+                    hold={selectedHoldSpace as any}
+                    onClose={() => setSelectedHoldSpace(null)}
+                    onHoldUpdated={() => fetchUserData()}
+                />
+            )}
         </div>
     );
 }

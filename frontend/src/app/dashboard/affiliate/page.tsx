@@ -197,6 +197,15 @@ export default function AffiliateDashboardPage() {
                         <p className="text-[#3F3F42]/60 text-sm mt-1">Track your referred users, bookings, and earned commissions</p>
                     </div>
                     <div className="flex items-center gap-3">
+                        <Link
+                            href="/affiliate/admin"
+                            className="px-4 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span>Admin Portal</span>
+                        </Link>
                         <span className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize ${tierConfig[profile.tier]?.bg} ${tierConfig[profile.tier]?.color}`}>
                             {tierConfig[profile.tier]?.label || profile.tier} Tier
                         </span>

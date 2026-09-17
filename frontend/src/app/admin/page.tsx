@@ -4,225 +4,591 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 
-interface Stats {
-  totalTours: number;
-  totalUsers: number;
-  totalBookings: number;
-  totalRevenue: number;
+// Material UI Components
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
+import Chip from "@mui/material/Chip";
+import Button from "@mui/material/Button";
+import Avatar from "@mui/material/Avatar";
+import Paper from "@mui/material/Paper";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Skeleton from "@mui/material/Skeleton";
+
+// Material UI Icons
+import TourRoundedIcon from "@mui/icons-material/TourRounded";
+import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
+import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import PublicRoundedIcon from "@mui/icons-material/PublicRounded";
+import ConfirmationNumberRoundedIcon from "@mui/icons-material/ConfirmationNumberRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+
+interface TourItem {
+  _id: string;
+  name: string;
+  price?: number;
+  duration?: number;
+  slug?: string;
+  isActive?: boolean;
 }
 
+interface BookingItem {
+  _id: string;
+  user?: { name?: string; email?: string };
+  tour?: { name?: string; price?: number };
+  totalPrice?: number;
+  status?: string;
+  createdAt?: string;
+}
+
+const parseNumeric = (val: any): number => {
+  if (!val) return 0;
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (typeof val === "string") {
+    const n = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+    return isNaN(n) ? 0 : n;
+  }
+  if (typeof val === "object") {
+    if (typeof val.amount === "number") return val.amount;
+    if (typeof val.totalPrice === "number") return val.totalPrice;
+    if (typeof val.bookingAmount === "number") return val.bookingAmount;
+    if (val.amount) return parseNumeric(val.amount);
+    if (val.totalPrice) return parseNumeric(val.totalPrice);
+  }
+  return 0;
+};
+
+const getBookingDisplayPrice = (b: any): string => {
+  const num = parseNumeric(b?.totalPrice) || parseNumeric(b?.price) || parseNumeric(b?.tour?.price) || 0;
+  return `$${num.toLocaleString()}`;
+};
+
+const getTourDisplayPrice = (t: any): string => {
+  const num = parseNumeric(t?.price);
+  return num > 0 ? `$${num.toLocaleString()}` : "—";
+};
+
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats>({
-    totalTours: 0,
-    totalUsers: 0,
-    totalBookings: 0,
-    totalRevenue: 0,
-  });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [toursCount, setToursCount] = useState<number>(0);
+  const [usersCount, setUsersCount] = useState<number>(0);
+  const [bookingsCount, setBookingsCount] = useState<number>(0);
+  const [revenue, setRevenue] = useState<number>(0);
+
+  const [recentTours, setRecentTours] = useState<TourItem[]>([]);
+  const [recentBookings, setRecentBookings] = useState<BookingItem[]>([]);
 
   useEffect(() => {
-    fetchStats();
+    fetchDashboardData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchDashboardData = async () => {
+    setRefreshing(true);
     try {
-      const token = localStorage.getItem("token");
-      // Fetch tours count
-      const toursResponse = await fetch(`${api.baseURL}/tours`);
-      if (toursResponse.ok) {
-        const toursData = await toursResponse.json();
-        setStats((prev) => ({
-          ...prev,
-          totalTours: toursData.data.tours?.length || 0,
-        }));
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const authHeader: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+      // 1. Fetch tours
+      const toursRes = await fetch(`${api.baseURL}/tours`).catch(() => null);
+      if (toursRes && toursRes.ok) {
+        const toursJson = await toursRes.json();
+        const toursList = toursJson?.data?.tours || [];
+        setToursCount(toursList.length);
+        setRecentTours(toursList.slice(0, 5));
       }
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
+
+      // 2. Fetch users
+      if (token) {
+        const usersRes = await fetch(`${api.baseURL}/users?limit=1`, { headers: authHeader }).catch(() => null);
+        if (usersRes && usersRes.ok) {
+          const usersJson = await usersRes.json();
+          setUsersCount(usersJson?.total || usersJson?.results || 0);
+        }
+
+        // 3. Fetch bookings
+        const bookingsRes = await fetch(`${api.baseURL}/bookings?limit=5&sort=-createdAt`, { headers: authHeader }).catch(() => null);
+        if (bookingsRes && bookingsRes.ok) {
+          const bookingsJson = await bookingsRes.json();
+          const list = bookingsJson?.data?.bookings || [];
+          setBookingsCount(bookingsJson?.total || list.length);
+          setRecentBookings(list);
+
+          const totalRev = list.reduce((acc: number, b: any) => {
+            return acc + (parseNumeric(b.totalPrice) || parseNumeric(b.price) || parseNumeric(b.tour?.price) || 0);
+          }, 0);
+          setRevenue(totalRev);
+        }
+      }
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  const currentDate = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Page Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-8 h-16 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-zinc-800 leading-none">Dashboard</h1>
-            <p className="text-gray-500 text-xs mt-1 leading-none">Welcome to the admin panel</p>
-          </div>
-        </div>
-      </div>
+    <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc", minHeight: "100%" }}>
+      {/* Top Banner: Minimal, high-level overview */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: 1.5,
+          mb: 2.5,
+        }}
+      >
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.25rem", lineHeight: 1.2 }}>
+            Operations Overview
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem", mt: 0.25 }}>
+            {currentDate} • Platform activity and core operational metrics
+          </Typography>
+        </Box>
 
-      {/* Dashboard Content */}
-      <div className="p-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Total Tours */}
-          <div className="bg-white rounded-md p-6 border border-gray-200 hover:shadow-sm transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 bg-zinc-100 border border-zinc-200 rounded-md flex items-center justify-center">
-                <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                </svg>
-              </div>
-              <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">Active</span>
-            </div>
-            <h3 className="text-2xl font-bold text-zinc-800 mb-1">{stats.totalTours}</h3>
-            <p className="text-gray-500 text-sm">Total Tours</p>
-          </div>
-
-          {/* Total Users */}
-          <div className="bg-white rounded-md p-6 border border-gray-200 hover:shadow-sm transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 bg-zinc-100 border border-zinc-200 rounded-md flex items-center justify-center">
-                <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </div>
-              <span className="text-xs font-medium text-zinc-700 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-md">Users</span>
-            </div>
-            <h3 className="text-2xl font-bold text-zinc-800 mb-1">{stats.totalUsers || "—"}</h3>
-            <p className="text-gray-500 text-sm">Total Users</p>
-          </div>
-
-          {/* Total Bookings */}
-          <div className="bg-white rounded-md p-6 border border-gray-200 hover:shadow-sm transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 bg-zinc-100 border border-zinc-200 rounded-md flex items-center justify-center">
-                <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md">Pending</span>
-            </div>
-            <h3 className="text-2xl font-bold text-zinc-800 mb-1">{stats.totalBookings || "—"}</h3>
-            <p className="text-gray-500 text-sm">Total Bookings</p>
-          </div>
-
-          {/* Revenue */}
-          <div className="bg-white rounded-md p-6 border border-gray-200 hover:shadow-sm transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 bg-zinc-100 border border-zinc-200 rounded-md flex items-center justify-center">
-                <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">Revenue</span>
-            </div>
-            <h3 className="text-2xl font-bold text-zinc-800 mb-1">${stats.totalRevenue || "—"}</h3>
-            <p className="text-gray-500 text-sm">Total Revenue</p>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-zinc-800 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Link
-              href="/admin/tours-management/create"
-              className="group bg-white border border-gray-200 rounded-md p-5 hover:border-zinc-400 hover:shadow-sm transition-all"
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Tooltip title="Refresh data" arrow>
+            <IconButton
+              size="small"
+              onClick={fetchDashboardData}
+              disabled={refreshing}
+              sx={{
+                border: "1px solid #e2e8f0",
+                bgcolor: "#ffffff",
+                borderRadius: "6px",
+                p: 0.75,
+                color: "#64748b",
+                "&:hover": { bgcolor: "#f8fafc", color: "#0f172a" },
+              }}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-zinc-100 border border-zinc-200 rounded-md flex items-center justify-center group-hover:bg-zinc-900 group-hover:text-white transition-colors">
-                  <svg className="w-6 h-6 text-zinc-700 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-zinc-800">Create New Tour</h3>
-                  <p className="text-gray-500 text-sm">Add a new tour package</p>
-                </div>
-              </div>
-            </Link>
+              <RefreshRoundedIcon
+                fontSize="small"
+                sx={{
+                  transform: refreshing ? "rotate(180deg)" : "none",
+                  transition: "transform 0.4s ease",
+                }}
+              />
+            </IconButton>
+          </Tooltip>
 
-            <Link
-              href="/admin/tours-management"
-              className="group bg-white border border-gray-200 rounded-md p-5 hover:border-zinc-400 hover:shadow-sm transition-all"
+          <Button
+            component={Link}
+            href="/admin/tours-management/create"
+            variant="contained"
+            size="small"
+            startIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              bgcolor: "#0f172a",
+              color: "#ffffff",
+              fontSize: "0.8125rem",
+              borderRadius: "6px",
+              px: 1.5,
+              height: 32,
+              "&:hover": { bgcolor: "#1e293b" },
+            }}
+          >
+            Add Tour
+          </Button>
+        </Box>
+      </Box>
+
+      {/* 4 Sleek Primary Metric Cards */}
+      <Grid container spacing={2} sx={{ mb: 2.5 }}>
+        {/* Total Tours */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Card sx={{ p: 2, borderRadius: "6px", border: "1px solid #e2e8f0", bgcolor: "#ffffff" }}>
+            <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.25 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "0.725rem" }}>
+                  Active Tours
+                </Typography>
+                <Box sx={{ width: 30, height: 30, borderRadius: "6px", bgcolor: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <TourRoundedIcon sx={{ fontSize: 18, color: "#0f172a" }} />
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                {loading ? (
+                  <Skeleton width={40} height={32} />
+                ) : (
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.5rem" }}>
+                    {toursCount}
+                  </Typography>
+                )}
+                <Chip label="Catalog" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600, borderRadius: "4px" }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Total Users */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Card sx={{ p: 2, borderRadius: "6px", border: "1px solid #e2e8f0", bgcolor: "#ffffff" }}>
+            <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.25 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "0.725rem" }}>
+                  Registered Users
+                </Typography>
+                <Box sx={{ width: 30, height: 30, borderRadius: "6px", bgcolor: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <PeopleAltRoundedIcon sx={{ fontSize: 18, color: "#0284c7" }} />
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                {loading ? (
+                  <Skeleton width={40} height={32} />
+                ) : (
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.5rem" }}>
+                    {usersCount > 0 ? usersCount : "—"}
+                  </Typography>
+                )}
+                <Chip label="Verified" color="info" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600, borderRadius: "4px" }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Total Bookings */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Card sx={{ p: 2, borderRadius: "6px", border: "1px solid #e2e8f0", bgcolor: "#ffffff" }}>
+            <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.25 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "0.725rem" }}>
+                  Total Bookings
+                </Typography>
+                <Box sx={{ width: 30, height: 30, borderRadius: "6px", bgcolor: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <CalendarMonthRoundedIcon sx={{ fontSize: 18, color: "#d97706" }} />
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                {loading ? (
+                  <Skeleton width={40} height={32} />
+                ) : (
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.5rem" }}>
+                    {bookingsCount > 0 ? bookingsCount : "—"}
+                  </Typography>
+                )}
+                <Chip label="Orders" color="warning" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600, borderRadius: "4px" }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Gross Revenue */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Card sx={{ p: 2, borderRadius: "6px", border: "1px solid #e2e8f0", bgcolor: "#ffffff" }}>
+            <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.25 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "0.725rem" }}>
+                  Gross Revenue
+                </Typography>
+                <Box sx={{ width: 30, height: 30, borderRadius: "6px", bgcolor: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <AttachMoneyRoundedIcon sx={{ fontSize: 18, color: "#059669" }} />
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                {loading ? (
+                  <Skeleton width={60} height={32} />
+                ) : (
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.5rem" }}>
+                    ${revenue.toLocaleString()}
+                  </Typography>
+                )}
+                <Chip label="YTD" color="success" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600, borderRadius: "4px" }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Main Content Grid: Tables & Management */}
+      <Grid container spacing={2.5}>
+        {/* Left Column: Recent Bookings or Tours Table */}
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <Paper sx={{ borderRadius: "6px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
+            <Box
+              sx={{
+                px: 2,
+                py: 1.5,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: "1px solid #e2e8f0",
+                bgcolor: "#ffffff",
+              }}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-zinc-100 border border-zinc-200 rounded-md flex items-center justify-center group-hover:bg-zinc-900 group-hover:text-white transition-colors">
-                  <svg className="w-6 h-6 text-zinc-700 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-zinc-800">Manage Tours</h3>
-                  <p className="text-gray-500 text-sm">View and edit tours</p>
-                </div>
-              </div>
-            </Link>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.875rem" }}>
+                  Recent Bookings
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#64748b" }}>
+                  Latest customer orders and reservations
+                </Typography>
+              </Box>
+              <Button
+                component={Link}
+                href="/admin/bookings"
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: "0.75rem",
+                  py: 0.25,
+                  px: 1,
+                  height: 28,
+                  borderRadius: "4px",
+                  borderColor: "#e2e8f0",
+                  color: "#334155",
+                }}
+              >
+                View All
+              </Button>
+            </Box>
 
-            <Link
-              href="/admin/bookings"
-              className="group bg-white border border-gray-200 rounded-md p-5 hover:border-zinc-400 hover:shadow-sm transition-all"
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Customer</TableCell>
+                    <TableCell>Tour Experience</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    [...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton width={120} height={20} /></TableCell>
+                        <TableCell><Skeleton width={140} height={20} /></TableCell>
+                        <TableCell><Skeleton width={60} height={20} /></TableCell>
+                        <TableCell><Skeleton width={70} height={20} /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : recentBookings.length > 0 ? (
+                    recentBookings.map((b) => (
+                      <TableRow key={b._id} hover>
+                        <TableCell>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Avatar
+                              sx={{
+                                width: 24,
+                                height: 24,
+                                fontSize: "0.65rem",
+                                fontWeight: 700,
+                                bgcolor: "#f1f5f9",
+                                color: "#0f172a",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              {b.user?.name ? b.user.name.charAt(0).toUpperCase() : "U"}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8125rem", color: "#0f172a" }}>
+                                {b.user?.name || "Customer"}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "0.7rem", display: "block" }}>
+                                {b.user?.email}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontSize: "0.8125rem", color: "#334155" }}>
+                            {b.tour?.name || "Adventure Tour"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8125rem", color: "#0f172a" }}>
+                            {getBookingDisplayPrice(b)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={b.status || "Confirmed"}
+                            size="small"
+                            variant="outlined"
+                            color={b.status === "cancelled" ? "error" : b.status === "pending" ? "warning" : "success"}
+                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600, borderRadius: "4px" }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} sx={{ textAlign: "center", py: 4, color: "#64748b" }}>
+                        <Typography variant="body2" sx={{ fontSize: "0.8125rem", color: "#64748b" }}>
+                          No reservations recorded yet.
+                        </Typography>
+                        <Button
+                          component={Link}
+                          href="/admin/bookings"
+                          size="small"
+                          sx={{ mt: 1, fontSize: "0.75rem", textTransform: "none" }}
+                        >
+                          Go to Bookings Manager
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Grid>
+
+        {/* Right Column: Live Inventory Catalog & Quick Jump */}
+        <Grid size={{ xs: 12, lg: 5 }}>
+          {/* Active Tours Catalog */}
+          <Paper sx={{ borderRadius: "6px", border: "1px solid #e2e8f0", overflow: "hidden", mb: 2.5 }}>
+            <Box
+              sx={{
+                px: 2,
+                py: 1.5,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: "1px solid #e2e8f0",
+                bgcolor: "#ffffff",
+              }}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-zinc-100 border border-zinc-200 rounded-md flex items-center justify-center group-hover:bg-zinc-900 group-hover:text-white transition-colors">
-                  <svg className="w-6 h-6 text-zinc-700 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-zinc-800">View Bookings</h3>
-                  <p className="text-gray-500 text-sm">Track reservations</p>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.875rem" }}>
+                  Tour Catalog ({toursCount})
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#64748b" }}>
+                  Active adventure packages
+                </Typography>
+              </Box>
+              <Button
+                component={Link}
+                href="/admin/tours-management"
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: "0.75rem",
+                  py: 0.25,
+                  px: 1,
+                  height: 28,
+                  borderRadius: "4px",
+                  borderColor: "#e2e8f0",
+                  color: "#334155",
+                }}
+              >
+                Manage
+              </Button>
+            </Box>
 
-        {/* Recent Activity Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Bookings */}
-          <div className="bg-white rounded-md border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-zinc-800">Recent Bookings</h2>
-              <Link href="/admin/bookings" className="text-zinc-600 hover:text-zinc-900 text-sm font-semibold hover:underline">
-                View All →
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-zinc-100 border border-zinc-200 rounded-md flex items-center justify-center">
-                      <span className="text-zinc-700 font-medium text-sm">JD</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-zinc-800 text-sm">Sample Booking {i}</p>
-                      <p className="text-gray-500 text-xs">Everest Base Camp Trek</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">Confirmed</span>
-                </div>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Package</TableCell>
+                    <TableCell>Duration</TableCell>
+                    <TableCell align="right">Price</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    [...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton width={140} height={20} /></TableCell>
+                        <TableCell><Skeleton width={50} height={20} /></TableCell>
+                        <TableCell align="right"><Skeleton width={50} height={20} /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : recentTours.length > 0 ? (
+                    recentTours.map((t) => (
+                      <TableRow key={t._id} hover>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8125rem", color: "#0f172a" }}>
+                            {t.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="caption" sx={{ color: "#64748b" }}>
+                            {t.duration ? `${t.duration} Days` : "Multi-day"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.8125rem", color: "#0f172a" }}>
+                            {getTourDisplayPrice(t)}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} sx={{ textAlign: "center", py: 3, color: "#64748b" }}>
+                        No tours found in catalog.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+
+          {/* Quick Shortcuts */}
+          <Paper sx={{ p: 2, borderRadius: "6px", border: "1px solid #e2e8f0", bgcolor: "#ffffff" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.8125rem", mb: 1.5 }}>
+              Core Controls
+            </Typography>
+            <Grid container spacing={1}>
+              {[
+                { title: "Destinations", href: "/admin/location", icon: <PublicRoundedIcon sx={{ fontSize: 16 }} /> },
+                { title: "Promo Codes", href: "/admin/promo-codes", icon: <ConfirmationNumberRoundedIcon sx={{ fontSize: 16 }} /> },
+                { title: "Users List", href: "/admin/users", icon: <PeopleAltRoundedIcon sx={{ fontSize: 16 }} /> },
+                { title: "Platform Settings", href: "/admin/settings", icon: <OpenInNewRoundedIcon sx={{ fontSize: 16 }} /> },
+              ].map((link, idx) => (
+                <Grid key={idx} size={{ xs: 6 }}>
+                  <Button
+                    component={Link}
+                    href={link.href}
+                    variant="outlined"
+                    fullWidth
+                    startIcon={link.icon}
+                    sx={{
+                      justifyContent: "flex-start",
+                      borderColor: "#e2e8f0",
+                      color: "#334155",
+                      fontSize: "0.75rem",
+                      py: 0.75,
+                      px: 1.25,
+                      borderRadius: "6px",
+                      "&:hover": { borderColor: "#cbd5e1", bgcolor: "#f8fafc" },
+                    }}
+                  >
+                    {link.title}
+                  </Button>
+                </Grid>
               ))}
-            </div>
-          </div>
-
-          {/* Recent Tours */}
-          <div className="bg-white rounded-md border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-zinc-800">Popular Tours</h2>
-              <Link href="/admin/tours-management" className="text-zinc-600 hover:text-zinc-900 text-sm font-semibold hover:underline">
-                View All →
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-gray-100 border border-gray-200 rounded-md"></div>
-                    <div>
-                      <p className="font-medium text-zinc-800 text-sm">Tour Package {i}</p>
-                      <p className="text-gray-500 text-xs">12 bookings this month</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold text-zinc-800">$1,299</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </Grid>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

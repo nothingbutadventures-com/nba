@@ -1,334 +1,674 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+
+// Material UI Components
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import TablePagination from "@mui/material/TablePagination";
+import Chip from "@mui/material/Chip";
+import Avatar from "@mui/material/Avatar";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import InputAdornment from "@mui/material/InputAdornment";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogActions from "@mui/material/DialogActions";
+import Skeleton from "@mui/material/Skeleton";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import Stack from "@mui/material/Stack";
+import CircularProgress from "@mui/material/CircularProgress";
+
+// Material UI Icons
+import TourRoundedIcon from "@mui/icons-material/TourRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
+import PublicRoundedIcon from "@mui/icons-material/PublicRounded";
+import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
 
 interface Tour {
   _id: string;
   name: string;
   slug: string;
-  tourCode: string;
-  summary: string;
-  price: {
-    amount: number;
-    currency: string;
+  tourCode?: string;
+  summary?: string;
+  price?: any;
+  duration?: any;
+  difficulty?: string;
+  country?: {
+    _id?: string;
+    name?: string;
   };
-  duration: {
-    days: number;
-    nights: number;
-  };
-  difficulty: string;
-  country: {
-    _id: string;
-    name: string;
-  };
-  isActive: boolean;
-  isFeatured: boolean;
+  isActive?: boolean;
+  isFeatured?: boolean;
 }
+
+const parseNumeric = (val: any): number => {
+  if (!val) return 0;
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (typeof val === "string") {
+    const n = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+    return isNaN(n) ? 0 : n;
+  }
+  if (typeof val === "object") {
+    if (typeof val.amount === "number") return val.amount;
+    if (typeof val.totalPrice === "number") return val.totalPrice;
+    if (val.amount) return parseNumeric(val.amount);
+    if (val.totalPrice) return parseNumeric(val.totalPrice);
+  }
+  return 0;
+};
+
+const formatTourPrice = (priceVal: any): string => {
+  const num = parseNumeric(priceVal);
+  return num > 0 ? `$${num.toLocaleString()}` : "—";
+};
+
+const formatTourDuration = (durationVal: any): string => {
+  if (!durationVal) return "—";
+  if (typeof durationVal === "number") return `${durationVal} Days`;
+  if (typeof durationVal === "object") {
+    const days = durationVal.days || 0;
+    const nights = durationVal.nights || 0;
+    if (days && nights) return `${days}D / ${nights}N`;
+    if (days) return `${days} Days`;
+  }
+  return String(durationVal);
+};
 
 export default function ToursManagementPage() {
   const [tours, setTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "featured">("all");
+
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Delete Dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tourToDelete, setTourToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Feedback Snackbar
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   useEffect(() => {
     fetchTours();
   }, []);
 
   const fetchTours = async () => {
+    setRefreshing(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const response = await fetch(`${api.baseURL}/tours`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       if (response.ok) {
         const data = await response.json();
-        setTours(data.data.tours);
+        setTours(data.data?.tours || []);
       }
     } catch (error) {
       console.error("Error fetching tours:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const handleDelete = async (tourId: string, tourName: string) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${tourName}"? This action cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+  const handleOpenDeleteDialog = (tour: Tour) => {
+    setTourToDelete({ id: tour._id, name: tour.name });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!tourToDelete) return;
+    setDeleteLoading(true);
 
     try {
-      setDeleteLoading(tourId);
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${api.baseURL}/tours/${tourId}`, {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const response = await fetch(`${api.baseURL}/tours/${tourToDelete.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       if (response.ok) {
-        setTours(tours.filter((tour) => tour._id !== tourId));
-        alert("Tour deleted successfully!");
+        setTours((prev) => prev.filter((t) => t._id !== tourToDelete.id));
+        setToast({ open: true, message: `Tour "${tourToDelete.name}" deleted successfully!`, severity: "success" });
+        setDeleteDialogOpen(false);
       } else {
-        const data = await response.json();
-        alert(`Failed to delete tour: ${data.message}`);
+        const errData = await response.json().catch(() => null);
+        setToast({ open: true, message: errData?.message || "Failed to delete tour.", severity: "error" });
       }
     } catch (error) {
       console.error("Error deleting tour:", error);
-      alert("Failed to delete tour. Please try again.");
+      setToast({ open: true, message: "Network error occurred while deleting tour.", severity: "error" });
     } finally {
-      setDeleteLoading(null);
+      setDeleteLoading(false);
     }
   };
 
-  const filteredTours = tours.filter(
-    (tour) =>
-      tour.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tour.country?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTours = useMemo(() => {
+    return tours.filter((tour) => {
+      const matchesSearch =
+        tour.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tour.tourCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tour.country?.name?.toLowerCase().includes(searchQuery.toLowerCase());
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Page Header Skeleton */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-8 py-6">
-            <div className="h-7 bg-gray-200 rounded-md w-48 mb-2 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded-md w-64 animate-pulse"></div>
-          </div>
-        </div>
-        {/* Content Skeleton */}
-        <div className="p-8">
-          <div className="bg-white rounded-md border border-gray-200 animate-pulse">
-            <div className="p-4 border-b border-gray-100">
-              <div className="h-10 bg-gray-200 rounded-md w-64"></div>
-            </div>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="p-4 border-b border-gray-100 flex items-center gap-4">
-                <div className="h-5 bg-gray-200 rounded-md w-48"></div>
-                <div className="h-5 bg-gray-200 rounded-md w-24"></div>
-                <div className="h-5 bg-gray-200 rounded-md w-20"></div>
-                <div className="h-5 bg-gray-200 rounded-md w-16"></div>
-                <div className="flex-1"></div>
-                <div className="h-8 bg-gray-200 rounded-md w-20"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+      if (!matchesSearch) return false;
+
+      if (statusFilter === "active") return tour.isActive === true;
+      if (statusFilter === "inactive") return tour.isActive === false;
+      if (statusFilter === "featured") return tour.isFeatured === true;
+      return true;
+    });
+  }, [tours, searchQuery, statusFilter]);
+
+  const paginatedTours = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return filteredTours.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredTours, page, rowsPerPage]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Page Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-8 h-16 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-zinc-800 leading-none">Tours Management</h1>
-            <p className="text-gray-550 text-xs mt-1 leading-none">
-              Manage all tours in the system ({tours.length} total)
-            </p>
-          </div>
-          <Link
+    <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc", minHeight: "100%" }}>
+      {/* Top Header: Matching /admin layout structure */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: 1.5,
+          mb: 2.5,
+        }}
+      >
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.25rem", lineHeight: 1.2 }}>
+            Tours Management
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem", mt: 0.25 }}>
+            Manage adventure catalog, itineraries, departures, and inventory pricing ({tours.length} total tours)
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Tooltip title="Refresh tours list" arrow>
+            <IconButton
+              size="small"
+              onClick={fetchTours}
+              disabled={refreshing}
+              sx={{
+                border: "1px solid #e2e8f0",
+                bgcolor: "#ffffff",
+                borderRadius: "6px",
+                p: 0.75,
+                color: "#64748b",
+                "&:hover": { bgcolor: "#f8fafc", color: "#0f172a" },
+              }}
+            >
+              <RefreshRoundedIcon
+                fontSize="small"
+                sx={{
+                  transform: refreshing ? "rotate(180deg)" : "none",
+                  transition: "transform 0.4s ease",
+                }}
+              />
+            </IconButton>
+          </Tooltip>
+
+          <Button
+            component={Link}
             href="/admin/tours-management/create"
-            className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-900 text-white font-medium py-1.5 px-3 rounded-md shadow-sm transition-colors text-xs flex items-center gap-1.5"
+            variant="contained"
+            size="small"
+            startIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              bgcolor: "#0f172a",
+              color: "#ffffff",
+              fontSize: "0.8125rem",
+              borderRadius: "6px",
+              px: 1.75,
+              height: 32,
+              "&:hover": { bgcolor: "#1e293b" },
+            }}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
             Create Tour
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </Box>
+      </Box>
 
-      {/* Content */}
-      <div className="p-8">
-        {/* Search and Filter */}
-        <div className="mb-6 flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder="Search tours by name or country..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition shadow-sm"
+      {/* Filter and Search Bar: Pure MUI */}
+      <Paper
+        sx={{
+          p: 1.5,
+          mb: 2.5,
+          borderRadius: "6px",
+          border: "1px solid #e2e8f0",
+          bgcolor: "#ffffff",
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          alignItems: { xs: "stretch", md: "center" },
+          justifyContent: "space-between",
+          gap: 1.5,
+        }}
+      >
+        <OutlinedInput
+          size="small"
+          placeholder="Search by tour name, code, or destination..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setPage(0);
+          }}
+          startAdornment={
+            <InputAdornment position="start">
+              <SearchRoundedIcon fontSize="small" sx={{ color: "#94a3b8" }} />
+            </InputAdornment>
+          }
+          endAdornment={
+            searchQuery ? (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => setSearchQuery("")}
+                  edge="end"
+                  sx={{ p: 0.25, color: "#94a3b8" }}
+                >
+                  <ClearRoundedIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null
+          }
+          sx={{
+            width: { xs: "100%", md: 360 },
+            borderRadius: "6px",
+            fontSize: "0.8125rem",
+            bgcolor: "#f8fafc",
+            "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e2e8f0" },
+          }}
+        />
+
+        {/* Status Filter Chips */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, mr: 0.5 }}>
+            Filter:
+          </Typography>
+          {[
+            { label: "All Tours", value: "all" },
+            { label: "Active", value: "active" },
+            { label: "Inactive", value: "inactive" },
+            { label: "Featured", value: "featured" },
+          ].map((tab) => (
+            <Chip
+              key={tab.value}
+              label={tab.label}
+              size="small"
+              onClick={() => {
+                setStatusFilter(tab.value as any);
+                setPage(0);
+              }}
+              variant={statusFilter === tab.value ? "filled" : "outlined"}
+              sx={{
+                borderRadius: "4px",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                bgcolor: statusFilter === tab.value ? "#0f172a" : "transparent",
+                color: statusFilter === tab.value ? "#ffffff" : "#475569",
+                borderColor: statusFilter === tab.value ? "#0f172a" : "#e2e8f0",
+                "&:hover": {
+                  bgcolor: statusFilter === tab.value ? "#1e293b" : "#f1f5f9",
+                },
+              }}
             />
-            <svg
-              className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-        </div>
+          ))}
+        </Box>
+      </Paper>
 
-        {/* Tours List */}
-        {filteredTours.length === 0 ? (
-          <div className="bg-white rounded-md border border-gray-200 p-12 text-center shadow-sm">
-            <svg
-              className="w-16 h-16 text-gray-300 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-              />
-            </svg>
-            <h3 className="text-lg font-semibold text-zinc-800 mb-2">
-              {searchQuery ? "No tours found" : "No tours yet"}
-            </h3>
-            <p className="text-gray-500 mb-6">
-              {searchQuery
-                ? "Try adjusting your search query"
-                : "Get started by creating your first tour"}
-            </p>
-            {!searchQuery && (
-              <Link
-                href="/admin/tours-management/create"
-                className="inline-block bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2 px-6 rounded-md shadow-sm transition text-sm"
-              >
-                Create Tour
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                      Tour Name
-                    </th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                      Country
-                    </th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                      Base Price
-                    </th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {filteredTours.map((tour) => (
-                    <tr key={tour._id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-zinc-50 border border-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
-                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                            </svg>
-                          </div>
-                          <div>
+      {/* Main Tours Table */}
+      <Paper sx={{ borderRadius: "6px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Tour Package</TableCell>
+                <TableCell>Destination</TableCell>
+                <TableCell>Duration</TableCell>
+                <TableCell>Base Price</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                [...Array(6)].map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Skeleton variant="rounded" width={34} height={34} sx={{ borderRadius: "6px" }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Skeleton width="70%" height={20} />
+                          <Skeleton width="40%" height={16} />
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell><Skeleton width={80} height={20} /></TableCell>
+                    <TableCell><Skeleton width={60} height={20} /></TableCell>
+                    <TableCell><Skeleton width={60} height={20} /></TableCell>
+                    <TableCell><Skeleton width={70} height={20} /></TableCell>
+                    <TableCell align="right"><Skeleton width={60} height={28} sx={{ ml: "auto" }} /></TableCell>
+                  </TableRow>
+                ))
+              ) : paginatedTours.length > 0 ? (
+                paginatedTours.map((tour) => (
+                  <TableRow key={tour._id} hover>
+                    {/* Tour Name & Code */}
+                    <TableCell sx={{ py: 1.5 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Avatar
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: "6px",
+                            bgcolor: "#f1f5f9",
+                            color: "#0f172a",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <TourRoundedIcon sx={{ fontSize: 18 }} />
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                             <Link
-                              href={`/trips/${tour.slug}/${tour.tourCode}`}
-                              className="text-sm font-medium text-zinc-800 hover:text-zinc-900 hover:underline transition-colors"
+                              href={`/trips/${tour.slug}/${tour.tourCode || ""}`}
+                              target="_blank"
+                              style={{ textDecoration: "none", color: "inherit" }}
                             >
-                              {tour.name}
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 600,
+                                  color: "#0f172a",
+                                  fontSize: "0.84rem",
+                                  "&:hover": { color: "#2563eb", textDecoration: "underline" },
+                                }}
+                              >
+                                {tour.name}
+                              </Typography>
                             </Link>
-                            <p className="text-xs text-gray-500 truncate max-w-xs">
-                              {tour.summary}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-zinc-800">
-                          {tour.country?.name || "N/A"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-zinc-800">
-                          {tour.duration.days}D
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-semibold text-zinc-800">
-                          ${tour.price.amount}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2 py-0.5 text-xs font-medium border rounded-md ${tour.isActive
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                              : "bg-zinc-100 text-zinc-600 border-zinc-200"
-                              }`}
-                          >
-                            {tour.isActive ? "Active" : "Inactive"}
-                          </span>
-                          {tour.isFeatured && (
-                            <span className="px-2 py-0.5 text-xs font-medium border rounded-md bg-zinc-100 text-zinc-800 border-zinc-200">
-                              Featured
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex justify-end gap-1.5">
-                          <Link
-                            href={`/admin/tours-management/${tour._id}/edit`}
-                            className="p-1.5 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-colors"
-                            title="Edit"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(tour._id, tour.name)}
-                            disabled={deleteLoading === tour._id}
-                            className="p-1.5 text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-                            title="Delete"
-                          >
-                            {deleteLoading === tour._id ? (
-                              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                            ) : (
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
+                            {tour.tourCode && (
+                              <Chip
+                                label={tour.tourCode}
+                                size="small"
+                                sx={{ height: 18, fontSize: "0.65rem", fontWeight: 700, borderRadius: "3px", bgcolor: "#f1f5f9", color: "#475569" }}
+                              />
                             )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                          </Box>
+                          {tour.summary && (
+                            <Typography
+                              variant="caption"
+                              noWrap
+                              sx={{ color: "#64748b", display: "block", maxWidth: { xs: 200, sm: 320, md: 420 }, fontSize: "0.725rem", mt: 0.25 }}
+                            >
+                              {tour.summary}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    </TableCell>
+
+                    {/* Destination / Country */}
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                        <PublicRoundedIcon sx={{ fontSize: 15, color: "#64748b" }} />
+                        <Typography variant="body2" sx={{ fontSize: "0.8125rem", color: "#334155" }}>
+                          {tour.country?.name || "Global"}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+
+                    {/* Duration */}
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                        <AccessTimeRoundedIcon sx={{ fontSize: 15, color: "#64748b" }} />
+                        <Typography variant="body2" sx={{ fontSize: "0.8125rem", color: "#334155" }}>
+                          {formatTourDuration(tour.duration)}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+
+                    {/* Base Price */}
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.84rem", color: "#0f172a" }}>
+                        {formatTourPrice(tour.price)}
+                      </Typography>
+                    </TableCell>
+
+                    {/* Status & Featured */}
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                        <Chip
+                          label={tour.isActive !== false ? "Active" : "Inactive"}
+                          size="small"
+                          variant="outlined"
+                          color={tour.isActive !== false ? "success" : "default"}
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600, borderRadius: "4px" }}
+                        />
+                        {tour.isFeatured && (
+                          <Chip
+                            icon={<StarRoundedIcon sx={{ fontSize: "13px !important" }} />}
+                            label="Featured"
+                            size="small"
+                            variant="outlined"
+                            color="warning"
+                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600, borderRadius: "4px" }}
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell align="right">
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
+                        <Tooltip title="View Live Tour" arrow>
+                          <IconButton
+                            component={Link}
+                            href={`/trips/${tour.slug}/${tour.tourCode || ""}`}
+                            target="_blank"
+                            size="small"
+                            sx={{ color: "#64748b", p: 0.5, borderRadius: "4px", "&:hover": { color: "#0f172a", bgcolor: "#f1f5f9" } }}
+                          >
+                            <LaunchRoundedIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Edit Tour" arrow>
+                          <IconButton
+                            component={Link}
+                            href={`/admin/tours-management/${tour._id}/edit`}
+                            size="small"
+                            sx={{ color: "#64748b", p: 0.5, borderRadius: "4px", "&:hover": { color: "#2563eb", bgcolor: "#eff6ff" } }}
+                          >
+                            <EditRoundedIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Delete Tour" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleOpenDeleteDialog(tour)}
+                            sx={{ color: "#64748b", p: 0.5, borderRadius: "4px", "&:hover": { color: "#ef4444", bgcolor: "#fee2e2" } }}
+                          >
+                            <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ textAlign: "center", py: 6, bgcolor: "#ffffff" }}>
+                    <Avatar
+                      sx={{
+                        width: 44,
+                        height: 44,
+                        mx: "auto",
+                        mb: 1.5,
+                        bgcolor: "#f1f5f9",
+                        color: "#64748b",
+                        borderRadius: "6px",
+                      }}
+                    >
+                      <TourRoundedIcon />
+                    </Avatar>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a", mb: 0.5 }}>
+                      {searchQuery ? "No matching tours found" : "No tours in catalog yet"}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "#64748b", mb: 2, fontSize: "0.8125rem" }}>
+                      {searchQuery
+                        ? "Try clearing filters or adjusting your search keywords."
+                        : "Get started by adding your first adventure tour package."}
+                    </Typography>
+                    {searchQuery ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setStatusFilter("all");
+                        }}
+                        sx={{ borderRadius: "4px", textTransform: "none", fontSize: "0.75rem" }}
+                      >
+                        Clear Filters
+                      </Button>
+                    ) : (
+                      <Button
+                        component={Link}
+                        href="/admin/tours-management/create"
+                        size="small"
+                        variant="contained"
+                        startIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+                        sx={{ bgcolor: "#0f172a", borderRadius: "4px", textTransform: "none", fontSize: "0.75rem" }}
+                      >
+                        Create Tour
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Table Pagination: Pure Material UI */}
+        {filteredTours.length > 0 && (
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={filteredTours.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            sx={{
+              borderTop: "1px solid #e2e8f0",
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                fontSize: "0.8125rem",
+                color: "#64748b",
+              },
+            }}
+          />
         )}
-      </div>
-    </div>
+      </Paper>
+
+      {/* Delete Confirmation Modal (Pure Material UI Dialog) */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          if (!deleteLoading) setDeleteDialogOpen(false);
+        }}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { p: 1, borderRadius: "6px" } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, fontSize: "1.05rem", pb: 1, color: "#0f172a" }}>
+          Delete Tour Package
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: "#64748b", fontSize: "0.875rem" }}>
+            Are you sure you want to delete <strong>"{tourToDelete?.name}"</strong>? This will permanently remove the
+            tour, itineraries, and departures from the platform.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            variant="outlined"
+            disabled={deleteLoading}
+            sx={{ borderRadius: "4px", fontSize: "0.8125rem" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={14} color="inherit" /> : null}
+            sx={{ borderRadius: "4px", fontSize: "0.8125rem" }}
+          >
+            {deleteLoading ? "Deleting..." : "Delete Tour"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Action Notification Toast */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ borderRadius: "6px", fontSize: "0.8125rem" }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }

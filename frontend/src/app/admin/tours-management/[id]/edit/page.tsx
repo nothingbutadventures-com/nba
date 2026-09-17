@@ -13,6 +13,35 @@ import CreateHotelModal from "@/components/CreateHotelModal";
 import SearchHotelModal from "@/components/SearchHotelModal";
 import BeforeYouBookEditor from "@/components/admin/BeforeYouBookEditor";
 
+// Material UI Components & Icons
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormLabel from "@mui/material/FormLabel";
+import Chip from "@mui/material/Chip";
+import InputAdornment from "@mui/material/InputAdornment";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import IconButton from "@mui/material/IconButton";
+import CircularProgress from "@mui/material/CircularProgress";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+
 interface Country {
   _id: string;
   name: string;
@@ -492,6 +521,7 @@ export default function EditTourPage() {
             joiningPoint: tour.beforeYouBook.joiningPoint || "",
           });
         }
+
       }
     } catch (error) {
       console.error("Error:", error);
@@ -1205,1509 +1235,2147 @@ export default function EditTourPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          <p className="mt-3 text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "#f8fafc" }}>
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+          <CircularProgress size={40} sx={{ color: "#0f172a" }} />
+          <Typography variant="body2" sx={{ color: "#64748b", fontWeight: 500 }}>
+            Loading tour data...
+          </Typography>
+        </Box>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", p: { xs: 2, sm: 3 }, pb: 8 }}>
       <Toaster position="top-right" />
-      {/* Header & Breadcrumbs */}
-      <div className="w-full bg-white border-b">
-        <div className="max-w-full mx-auto px-4 md:px-12 lg:px-24 py-4 md:py-6">
-          <div className="text-[13px] text-gray-500 mb-4">
-            <Link href="/admin" className="hover:text-[#4C1D95]">Admin</Link> / <Link href="/admin/tours-management" className="hover:text-[#4C1D95]">Tours</Link> / Edit Tour
-          </div>
-          <h1 className="text-3xl md:text-4xl font-semibold text-[#4C1D95] mb-2">Edit Tour</h1>
-          <div className="text-gray-500 text-sm">Update tour details step by step</div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-full mx-auto px-4 md:px-12 lg:px-24 py-8">
-        <form onSubmit={handleSubmit}>
-          {/* Progress Stepper */}
-          <div className="bg-white rounded-xl border p-6 flex items-start justify-between relative overflow-hidden mb-6">
-            <div className="absolute left-[10%] right-[10%] top-[48px] h-[1px] bg-gray-300 z-0"></div>
-            {stepConfig.map((s, index) => {
-              const isCompleted = currentStep > s.step;
-              const isCurrent = currentStep === s.step;
-              const Icon = s.icon;
-              return (
-                <div key={index} className="flex flex-col items-center relative z-10 flex-1 cursor-pointer" onClick={() => { setCurrentStep(s.step); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                  <div className="bg-[#fff] px-2 mb-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center relative text-white ${isCompleted || isCurrent ? 'bg-[#6A38C2]' : 'bg-[#2f3d44]'}`}>
-                      <Icon size={24} weight={isCompleted || isCurrent ? "fill" : "bold"} />
-                      {isCompleted && (
-                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-[2px]">
-                          <CheckCircle size={16} weight="fill" className="text-[#6A38C2]" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <span className={`text-[15px] text-center font-medium ${isCurrent ? 'text-[#6A38C2]' : 'text-[#4E4E4E]'}`}>
+      {/* Header & Breadcrumbs: Matching /admin and /admin/tours-management */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: 1.5,
+          mb: 2.5,
+        }}
+      >
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.25rem", lineHeight: 1.2 }}>
+            Edit Tour Package
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem", mt: 0.25 }}>
+            Update tour specifications step-by-step to reflect across the adventure catalog
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Button
+            component={Link}
+            href="/admin/tours-management"
+            variant="outlined"
+            size="small"
+            startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              borderColor: "#e2e8f0",
+              color: "#334155",
+              fontSize: "0.8125rem",
+              borderRadius: "6px",
+              height: 32,
+              "&:hover": { borderColor: "#cbd5e1", bgcolor: "#ffffff" },
+            }}
+          >
+            Back to Tours
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Stepper Header (Pure Material UI) */}
+      <Paper
+        sx={{
+          p: 1.5,
+          mb: 3,
+          borderRadius: "6px",
+          border: "1px solid #e2e8f0",
+          bgcolor: "#ffffff",
+          boxShadow: "0 1px 2px 0 rgba(0,0,0,0.02)",
+        }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(5, 1fr)" },
+            gap: 1.25,
+          }}
+        >
+          {stepConfig.map((s) => {
+            const isCompleted = currentStep > s.step;
+            const isCurrent = currentStep === s.step;
+            const Icon = s.icon;
+            return (
+              <Box
+                key={s.step}
+                onClick={() => {
+                  setCurrentStep(s.step);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.25,
+                  p: 1.25,
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  border: "1px solid",
+                  borderColor: isCurrent ? "#0f172a" : isCompleted ? "#cbd5e1" : "#f1f5f9",
+                  bgcolor: isCurrent ? "#0f172a" : isCompleted ? "#f8fafc" : "#ffffff",
+                  color: isCurrent ? "#ffffff" : "#0f172a",
+                  transition: "all 0.15s ease",
+                  "&:hover": {
+                    borderColor: isCurrent ? "#0f172a" : "#94a3b8",
+                    bgcolor: isCurrent ? "#0f172a" : "#f8fafc",
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: isCurrent ? "rgba(255,255,255,0.15)" : isCompleted ? "#e2e8f0" : "#f1f5f9",
+                    color: isCurrent ? "#ffffff" : isCompleted ? "#0f172a" : "#64748b",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon size={18} weight={isCurrent ? "bold" : "regular"} />
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    variant="subtitle2"
+                    noWrap
+                    sx={{
+                      fontSize: "0.785rem",
+                      fontWeight: 600,
+                      color: isCurrent ? "#ffffff" : "#0f172a",
+                      lineHeight: 1.2,
+                    }}
+                  >
                     {s.label}
-                  </span>
-                  <span className={`text-[13px] mt-1 ${isCompleted ? 'text-[#6A38C2]' : 'text-gray-500'}`}>
-                    {isCompleted ? 'Completed' : `Step ${s.step}`}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    noWrap
+                    sx={{
+                      fontSize: "0.68rem",
+                      color: isCurrent ? "rgba(255,255,255,0.7)" : isCompleted ? "#10b981" : "#94a3b8",
+                      display: "block",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {isCompleted ? "Completed" : `Step ${s.step} of 5`}
+                  </Typography>
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
+      </Paper>
+
+      {/* Main Content Form */}
+      <form onSubmit={handleSubmit}>
 
           {/* ==================== STEP 1: TOUR DETAILS ==================== */}
           {currentStep === 1 && (
-          <div className="space-y-6">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <h2 className="text-[32px] font-medium text-[#2C3238] leading-tight">Tour Details</h2>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border p-8">
-            <h3 className="text-lg font-semibold text-[#3F3F42] mb-4">
-              Basic Information
-            </h3>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <Box sx={{ px: 0.5 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.25rem", mb: 0.5 }}>
+                  Tour Details
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem" }}>
+                  Configure basic information, destinations, itinerary maps, and tour categorization.
+                </Typography>
+              </Box>
 
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-[#3F3F42] mb-2">
-                    Tour Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                    placeholder="e.g., Himalayan Adventure Trek - Everest Base Camp"
-                  />
-                </div>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2.5, sm: 3.5 },
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a", mb: 0.5, fontSize: "0.95rem" }}>
+                  Basic Information
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", mb: 3, fontSize: "0.8125rem" }}>
+                  Primary details displayed on the tour card and hero section.
+                </Typography>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Itinerary Map Image
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Upload a map image for the full itinerary view
-                  </p>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2.5 }}>
+                  {/* Tour Name */}
+                  <Box sx={{ gridColumn: { sm: "span 2" } }}>
+                    <TextField
+                      label="Tour Name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      fullWidth
+                      size="small"
+                      placeholder="e.g., Himalayan Adventure Trek - Everest Base Camp"
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    />
+                  </Box>
 
-                  {!itineraryMapImage.preview ? (
-                    <div
-                      className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-gray-400 transition"
-                      onClick={() => setImagePickerModal({ isOpen: true, target: "map", multiple: false })}
-                    >
-                      <svg
-                        className="mx-auto h-8 w-8 text-gray-400"
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
+                  {/* Description */}
+                  <Box sx={{ gridColumn: { sm: "span 2" } }}>
+                    <TextField
+                      label="Description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      multiline
+                      rows={4}
+                      fullWidth
+                      size="small"
+                      placeholder="Detailed description of the tour adventure..."
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    />
+                  </Box>
+
+                  {/* Description Image */}
+                  <Box sx={{ gridColumn: { sm: "span 2" } }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "#475569", display: "block", mb: 0.5 }}>
+                      Description Image
+                    </Typography>
+                    {!descriptionImage.preview ? (
+                      <Paper
+                        variant="outlined"
+                        onClick={() => setImagePickerModal({ isOpen: true, target: "description", multiple: false })}
+                        sx={{
+                          p: 3,
+                          textAlign: "center",
+                          cursor: "pointer",
+                          borderRadius: "6px",
+                          borderColor: "#cbd5e1",
+                          borderStyle: "dashed",
+                          bgcolor: "#f8fafc",
+                          "&:hover": { borderColor: "#0f172a", bgcolor: "#f1f5f9" },
+                        }}
                       >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <p className="mt-1 text-sm text-gray-600">
-                        Click to select or upload map image
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <img
-                        src={itineraryMapImage.preview}
-                        alt="Map preview"
-                        className="w-full h-48 object-cover rounded-md"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeItineraryMapImage}
-                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                        <CloudUploadOutlinedIcon sx={{ fontSize: 32, color: "#64748b", mb: 0.5 }} />
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: "#334155" }}>
+                          Click to select or upload description image
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+                          Displayed in the tour detail overview page
+                        </Typography>
+                      </Paper>
+                    ) : (
+                      <Box sx={{ position: "relative", borderRadius: "6px", overflow: "hidden", border: "1px solid #e2e8f0", maxWidth: 400 }}>
+                        <img src={descriptionImage.preview} alt="Description preview" style={{ width: "100%", height: 180, objectFit: "cover" }} />
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="contained"
+                          onClick={removeDescriptionImage}
+                          startIcon={<DeleteOutlineRoundedIcon fontSize="small" />}
+                          sx={{ position: "absolute", top: 8, right: 8, textTransform: "none", fontSize: "0.75rem", py: 0.5, px: 1.25 }}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    placeholder="Detailed description"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Description Image
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Upload an image that will be displayed in the tour detail page
-                  </p>
-
-                  {!descriptionImage.preview ? (
-                    <div
-                      className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-gray-400 transition"
-                      onClick={() => setImagePickerModal({ isOpen: true, target: "description", multiple: false })}
-                    >
-                      <svg
-                        className="mx-auto h-8 w-8 text-gray-400"
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
-                      >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <p className="mt-1 text-sm text-gray-600">
-                        Click to select or upload description image
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <img
-                        src={descriptionImage.preview}
-                        alt="Description preview"
-                        className="w-full h-48 object-cover rounded-md"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeDescriptionImage}
-                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Destination <span className="text-red-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowDestinationPopup(true)}
-                    className="w-full text-left px-3 py-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] bg-white flex items-center justify-between shadow-sm hover:border-gray-400 transition"
-                  >
-                    <span className={formData.country ? "text-[#3F3F42] font-medium" : "text-gray-400"}>
-                      {formData.country
-                        ? countries.find((c) => c._id === formData.country || c.id === formData.country)?.name || "Select destination"
-                        : "Select destination"}
-                    </span>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <input type="hidden" name="country" value={formData.country} required />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Max Group Size
-                  </label>
-                  <input
-                    type="number"
-                    name="maxGroupSize"
-                    value={formData.maxGroupSize}
-                    onChange={handleChange}
-                    min="1"
-                    max="50"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    placeholder="12"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Duration (Days)
-                  </label>
-                  <input
-                    type="number"
-                    name="durationDays"
-                    value={formData.durationDays}
-                    onChange={handleChange}
-                    min="1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    placeholder="7"
-                  />
-                </div>
-
-
-
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Physical Rating{" "} <span className="text-red-500">*</span>
-
-                  </label>
-                  <select
-                    required
-                    name="physicalRatingLevel"
-                    value={formData.physicalRatingLevel}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                  >
-                    <option value="">Select physical rating...</option>
-                    {physicalRatings.map((rating) => (
-                      <option key={rating._id} value={rating.level}>
-                        {rating.level} - {rating.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Travel Style <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    name="travelStyle"
-                    value={formData.travelStyle}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                  >
-                    <option value="">Select travel style...</option>
-                    {travelStyles.map((style) => (
-                      <option key={style._id} value={style.name}>
-                        {style.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Trip Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    name="tripType"
-                    value={formData.tripType}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                  >
-                    <option value="">Select trip type...</option>
-                    {tripTypes.map((type) => (
-                      <option key={type._id} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-[#3F3F42] mb-1">
-                    Interests
-                  </label>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Select interests/categories related to this tour (click below to add multiple)
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {selectedInterests.map((interest) => (
-                      <span
-                        key={interest}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-[#f4f4f5] px-3 py-1.5 text-xs font-semibold text-[#18181b] border border-gray-250"
-                      >
-                        {interest}
-                        <button
-                          type="button"
-                          onClick={() => setSelectedInterests(selectedInterests.filter((i) => i !== interest))}
-                          className="hover:bg-[#f4f4f5] rounded-full p-0.5"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </span>
-                    ))}
-                    {selectedInterests.length === 0 && (
-                      <span className="text-sm text-gray-400 italic">No interests selected</span>
+                          Remove
+                        </Button>
+                      </Box>
                     )}
-                  </div>
+                  </Box>
 
-                  <select
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val && !selectedInterests.includes(val)) {
-                        setSelectedInterests([...selectedInterests, val]);
-                      }
-                      e.target.value = "";
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] bg-white"
-                  >
-                    <option value="">Add interest...</option>
-                    {interestsOptions
-                      .filter((i) => !selectedInterests.includes(i.name))
-                      .map((interest) => (
-                        <option key={interest._id} value={interest.name}>
-                          {interest.name}
-                        </option>
+                  {/* Itinerary Map Image */}
+                  <Box sx={{ gridColumn: { sm: "span 2" } }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "#475569", display: "block", mb: 0.5 }}>
+                      Itinerary Map Image
+                    </Typography>
+                    {!itineraryMapImage.preview ? (
+                      <Paper
+                        variant="outlined"
+                        onClick={() => setImagePickerModal({ isOpen: true, target: "map", multiple: false })}
+                        sx={{
+                          p: 3,
+                          textAlign: "center",
+                          cursor: "pointer",
+                          borderRadius: "6px",
+                          borderColor: "#cbd5e1",
+                          borderStyle: "dashed",
+                          bgcolor: "#f8fafc",
+                          "&:hover": { borderColor: "#0f172a", bgcolor: "#f1f5f9" },
+                        }}
+                      >
+                        <CloudUploadOutlinedIcon sx={{ fontSize: 32, color: "#64748b", mb: 0.5 }} />
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: "#334155" }}>
+                          Click to select or upload map image
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+                          Displayed as interactive overview map on the tour page
+                        </Typography>
+                      </Paper>
+                    ) : (
+                      <Box sx={{ position: "relative", borderRadius: "6px", overflow: "hidden", border: "1px solid #e2e8f0", maxWidth: 400 }}>
+                        <img src={itineraryMapImage.preview} alt="Map preview" style={{ width: "100%", height: 180, objectFit: "cover" }} />
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="contained"
+                          onClick={removeItineraryMapImage}
+                          startIcon={<DeleteOutlineRoundedIcon fontSize="small" />}
+                          sx={{ position: "absolute", top: 8, right: 8, textTransform: "none", fontSize: "0.75rem", py: 0.5, px: 1.25 }}
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {/* Destination */}
+                  <Box>
+                    <TextField
+                      label="Destination Country"
+                      required
+                      value={countries.find((c) => c._id === formData.country || c.id === formData.country)?.name || ""}
+                      placeholder="Click to select destination"
+                      onClick={() => setShowDestinationPopup(true)}
+                      fullWidth
+                      size="small"
+                      slotProps={{
+                        input: {
+                          readOnly: true,
+                          sx: { cursor: "pointer" },
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <ChevronRightRoundedIcon fontSize="small" sx={{ color: "#64748b" }} />
+                            </InputAdornment>
+                          ),
+                        },
+                        inputLabel: { shrink: true },
+                      }}
+                    />
+                    <input type="hidden" name="country" value={formData.country} required />
+                  </Box>
+
+                  {/* Max Group Size */}
+                  <Box>
+                    <TextField
+                      type="number"
+                      label="Max Group Size"
+                      name="maxGroupSize"
+                      value={formData.maxGroupSize}
+                      onChange={handleChange}
+                      fullWidth
+                      size="small"
+                      placeholder="12"
+                      slotProps={{
+                        htmlInput: { min: 1, max: 50 },
+                        inputLabel: { shrink: true },
+                      }}
+                    />
+                  </Box>
+
+                  {/* Duration Days */}
+                  <Box>
+                    <TextField
+                      type="number"
+                      label="Duration (Days)"
+                      name="durationDays"
+                      value={formData.durationDays}
+                      onChange={handleChange}
+                      fullWidth
+                      size="small"
+                      placeholder="7"
+                      slotProps={{
+                        htmlInput: { min: 1 },
+                        inputLabel: { shrink: true },
+                      }}
+                    />
+                  </Box>
+
+                  {/* Physical Rating */}
+                  <Box>
+                    <TextField
+                      select
+                      label="Physical Rating"
+                      required
+                      name="physicalRatingLevel"
+                      value={formData.physicalRatingLevel}
+                      onChange={handleChange}
+                      fullWidth
+                      size="small"
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    >
+                      <MenuItem value=""><em>Select physical rating...</em></MenuItem>
+                      {physicalRatings.map((rating) => (
+                        <MenuItem key={rating._id} value={rating.level}>
+                          {rating.level} - {rating.name}
+                        </MenuItem>
                       ))}
-                  </select>
-                </div>
+                    </TextField>
+                  </Box>
 
-                {formData.country && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                        Start City
-                      </label>
-                      <input
-                        type="text"
-                        name="startCity"
-                        value={formData.startCity}
-                        onClick={() => setShowCityPopup('start')}
-                        readOnly
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] cursor-pointer"
-                        placeholder="Select Start City"
-                      />
-                    </div>
+                  {/* Travel Style */}
+                  <Box>
+                    <TextField
+                      select
+                      label="Travel Style"
+                      required
+                      name="travelStyle"
+                      value={formData.travelStyle}
+                      onChange={handleChange}
+                      fullWidth
+                      size="small"
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    >
+                      <MenuItem value=""><em>Select travel style...</em></MenuItem>
+                      {travelStyles.map((style) => (
+                        <MenuItem key={style._id} value={style.name}>{style.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Box>
 
-                    <div>
-                      <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                        End City
-                      </label>
-                      <input
-                        type="text"
-                        name="endCity"
-                        value={formData.endCity}
-                        onClick={() => setShowCityPopup('end')}
-                        readOnly
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] cursor-pointer"
-                        placeholder="Select End City"
-                      />
-                    </div>
-                  </>
-                )}
+                  {/* Trip Type */}
+                  <Box>
+                    <TextField
+                      select
+                      label="Trip Type"
+                      required
+                      name="tripType"
+                      value={formData.tripType}
+                      onChange={handleChange}
+                      fullWidth
+                      size="small"
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    >
+                      <MenuItem value=""><em>Select trip type...</em></MenuItem>
+                      {tripTypes.map((type) => (
+                        <MenuItem key={type._id} value={type.name}>{type.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Box>
 
+                  {/* Interests */}
+                  <Box sx={{ gridColumn: { sm: "span 2" } }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "#475569", display: "block", mb: 0.5 }}>
+                      Interests & Categories
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
+                      {selectedInterests.map((interest) => (
+                        <Chip
+                          key={interest}
+                          label={interest}
+                          size="small"
+                          onDelete={() => setSelectedInterests(selectedInterests.filter((i) => i !== interest))}
+                          sx={{ borderRadius: "4px", bgcolor: "#f1f5f9", fontWeight: 500, fontSize: "0.75rem" }}
+                        />
+                      ))}
+                      {selectedInterests.length === 0 && (
+                        <Typography variant="caption" sx={{ color: "#94a3b8", fontStyle: "italic" }}>
+                          No interests selected
+                        </Typography>
+                      )}
+                    </Box>
+                    <TextField
+                      select
+                      label="Add Interest"
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val && !selectedInterests.includes(val)) {
+                          setSelectedInterests([...selectedInterests, val]);
+                        }
+                      }}
+                      fullWidth
+                      size="small"
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    >
+                      <MenuItem value=""><em>Choose interest to add...</em></MenuItem>
+                      {interestsOptions
+                        .filter((i) => !selectedInterests.includes(i.name))
+                        .map((interest) => (
+                          <MenuItem key={interest._id} value={interest.name}>
+                            {interest.name}
+                          </MenuItem>
+                        ))}
+                    </TextField>
+                  </Box>
 
+                  {/* Start City & End City */}
+                  {formData.country && (
+                    <>
+                      <Box>
+                        <TextField
+                          label="Start City"
+                          name="startCity"
+                          value={formData.startCity}
+                          onClick={() => setShowCityPopup('start')}
+                          placeholder="Select Start City"
+                          fullWidth
+                          size="small"
+                          slotProps={{
+                            input: {
+                              readOnly: true,
+                              sx: { cursor: "pointer" },
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <ChevronRightRoundedIcon fontSize="small" sx={{ color: "#64748b" }} />
+                                </InputAdornment>
+                              ),
+                            },
+                            inputLabel: { shrink: true },
+                          }}
+                        />
+                      </Box>
+                      <Box>
+                        <TextField
+                          label="End City"
+                          name="endCity"
+                          value={formData.endCity}
+                          onClick={() => setShowCityPopup('end')}
+                          placeholder="Select End City"
+                          fullWidth
+                          size="small"
+                          slotProps={{
+                            input: {
+                              readOnly: true,
+                              sx: { cursor: "pointer" },
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <ChevronRightRoundedIcon fontSize="small" sx={{ color: "#64748b" }} />
+                                </InputAdornment>
+                              ),
+                            },
+                            inputLabel: { shrink: true },
+                          }}
+                        />
+                      </Box>
+                    </>
+                  )}
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Tour Highlights (one per line)
-                  </label>
-                  <textarea
-                    name="highlights"
-                    value={formData.highlights}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    placeholder="Reach Everest Base Camp&#10;Sunrise from Kala Patthar"
-                  />
-                </div>
+                  {/* Highlights */}
+                  <Box sx={{ gridColumn: { sm: "span 2" } }}>
+                    <TextField
+                      label="Tour Highlights (one per line)"
+                      name="highlights"
+                      value={formData.highlights}
+                      onChange={handleChange}
+                      multiline
+                      rows={4}
+                      fullWidth
+                      size="small"
+                      placeholder="Reach Everest Base Camp&#10;Sunrise from Kala Patthar"
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    />
+                  </Box>
 
+                  {/* Transportation */}
+                  <Box sx={{ gridColumn: { sm: "span 2" } }}>
+                    <TextField
+                      label="Transportation"
+                      name="transportation"
+                      value={formData.transportation}
+                      onChange={handleChange}
+                      multiline
+                      rows={2}
+                      fullWidth
+                      size="small"
+                      placeholder="Train, local bus, private vehicle, small riverboat, plane."
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    />
+                  </Box>
 
+                  {/* Staff & Experts */}
+                  <Box sx={{ gridColumn: { sm: "span 2" } }}>
+                    <TextField
+                      label="Staff & Experts"
+                      name="staffExperts"
+                      value={formData.staffExperts}
+                      onChange={handleChange}
+                      multiline
+                      rows={2}
+                      fullWidth
+                      size="small"
+                      placeholder="CEO (Chief Experience Officer) throughout, local guides."
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    />
+                  </Box>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Transportation
-                  </label>
-                  <textarea
-                    name="transportation"
-                    value={formData.transportation}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    placeholder="Train, local bus, private vehicle, auto-rickshaw, small riverboat, plane."
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Staff &amp; Experts
-                  </label>
-                  <textarea
-                    name="staffExperts"
-                    value={formData.staffExperts}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    placeholder="CEO (Chief Experience Officer) throughout, local guides."
-                  />
-                </div>
-
-
-
-
-
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Age Requirements
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <div className="w-24">
-                      <input
+                  {/* Age Requirements */}
+                  <Box>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "#475569", display: "block", mb: 0.5 }}>
+                      Age Requirements
+                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <TextField
                         type="number"
+                        label="Min"
                         name="ageMin"
                         value={formData.ageMin}
                         onChange={handleChange}
-                        min="0"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                        placeholder="Min"
+                        size="small"
+                        slotProps={{ htmlInput: { min: 0 }, inputLabel: { shrink: true } }}
+                        sx={{ width: 110 }}
                       />
-                    </div>
-                    <span className="text-gray-400">to</span>
-                    <div className="w-24">
-                      <input
+                      <Typography variant="body2" sx={{ color: "#94a3b8" }}>to</Typography>
+                      <TextField
                         type="number"
+                        label="Max"
                         name="ageMax"
                         value={formData.ageMax}
                         onChange={handleChange}
-                        min="0"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                        placeholder="Max"
+                        size="small"
+                        slotProps={{ htmlInput: { min: 0 }, inputLabel: { shrink: true } }}
+                        sx={{ width: 110 }}
                       />
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-2">
-                    Wifi Availability
-                  </label>
-                  <div className="flex items-center gap-6 mt-1">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="wifiAvailable"
-                        checked={formData.wifiAvailable === true}
-                        onChange={() => setFormData({ ...formData, wifiAvailable: true })}
-                        className="w-4 h-4 text-[#18181b] border-gray-300 focus:ring-[#18181b]/20"
-                      />
-                      <span className="ml-2 text-sm text-[#3F3F42] font-medium">Yes</span>
-                    </label>
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="wifiAvailable"
-                        checked={formData.wifiAvailable === false}
-                        onChange={() => setFormData({ ...formData, wifiAvailable: false })}
-                        className="w-4 h-4 text-[#18181b] border-gray-300 focus:ring-[#18181b]/20"
-                      />
-                      <span className="ml-2 text-sm text-[#3F3F42] font-medium">No</span>
-                    </label>
-                  </div>
-                </div>
+                    </Box>
+                  </Box>
 
+                  {/* Wifi Availability */}
+                  <Box>
+                    <FormControl component="fieldset" size="small">
+                      <FormLabel component="legend" sx={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", mb: 0.5 }}>
+                        Wifi Availability
+                      </FormLabel>
+                      <RadioGroup
+                        row
+                        value={formData.wifiAvailable === true ? "yes" : "no"}
+                        onChange={(e) => setFormData({ ...formData, wifiAvailable: e.target.value === "yes" })}
+                      >
+                        <FormControlLabel value="yes" control={<Radio size="small" sx={{ color: "#94a3b8", "&.Mui-checked": { color: "#0f172a" } }} />} label={<Typography variant="body2" sx={{ fontSize: "0.8125rem" }}>Yes</Typography>} />
+                        <FormControlLabel value="no" control={<Radio size="small" sx={{ color: "#94a3b8", "&.Mui-checked": { color: "#0f172a" } }} />} label={<Typography variant="body2" sx={{ fontSize: "0.8125rem" }}>No</Typography>} />
+                      </RadioGroup>
+                    </FormControl>
+                  </Box>
 
-
-                <div className="md:col-span-1">
-                  <div className="flex items-center gap-2 mt-2">
-                    <input
-                      type="checkbox"
-                      id="isFeatured"
-                      name="isFeatured"
-                      checked={formData.isFeatured}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  {/* Active & Featured */}
+                  <Box sx={{ display: "flex", gap: 3, alignItems: "center", gridColumn: { sm: "span 2" }, pt: 1 }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={formData.isActive}
+                          onChange={handleChange}
+                          name="isActive"
+                          size="small"
+                          sx={{ color: "#94a3b8", "&.Mui-checked": { color: "#0f172a" } }}
+                        />
+                      }
+                      label={<Typography variant="body2" sx={{ fontSize: "0.8125rem", fontWeight: 500, color: "#334155" }}>Active in Catalog</Typography>}
                     />
-                    <label htmlFor="isFeatured" className="text-sm font-medium text-[#3F3F42]">
-                      Featured Tour
-                    </label>
-                  </div>
-                </div>
-
-                <div className="md:col-span-1">
-                  <div className="flex items-center gap-2 mt-2">
-                    <input
-                      type="checkbox"
-                      id="ownRoomAvailable"
-                      name="ownRoomAvailable"
-                      checked={formData.ownRoomAvailable}
-                      onChange={(e) => setFormData(prev => ({ ...prev, ownRoomAvailable: e.target.checked }))}
-                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={formData.isFeatured}
+                          onChange={handleChange}
+                          name="isFeatured"
+                          size="small"
+                          sx={{ color: "#94a3b8", "&.Mui-checked": { color: "#0f172a" } }}
+                        />
+                      }
+                      label={<Typography variant="body2" sx={{ fontSize: "0.8125rem", fontWeight: 500, color: "#334155" }}>Featured Tour</Typography>}
                     />
-                    <label htmlFor="ownRoomAvailable" className="text-sm font-medium text-[#3F3F42]">
-                      Own Room (Solo Supplement) Available
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          </div>
+                  </Box>
+                </Box>
+              </Paper>
+            </Box>
           )}
 
-          {/* ==================== STEP 2: MEDIA & PRICING ==================== */}
-          {currentStep === 2 && (
-          <div className="space-y-6">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <h2 className="text-[32px] font-medium text-[#2C3238] leading-tight">Media & Pricing</h2>
-          </div>
-          {/* Images Section */}
-          <div className="bg-white rounded-xl shadow-sm border p-8">
-            <h3 className="text-lg font-semibold text-[#3F3F42] mb-4">
-              Tour Images
-            </h3>
-
-            <div className="mb-4">
-              <div
-                className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center cursor-pointer hover:border-gray-400 transition"
-                onClick={() => setImagePickerModal({ isOpen: true, target: "main", multiple: true })}
-              >
-                <svg
-                  className="mx-auto h-10 w-10 text-gray-400"
-                  stroke="currentColor"
-                  fill="none"
-                  viewBox="0 0 48 48"
-                >
-                  <path
-                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+          {showCityPopup && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#3F3F42]/50 backdrop-blur-sm">
+              <div className="bg-white rounded-md w-full max-w-md shadow-2xl overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-bold text-[#3F3F42]">Select {showCityPopup === 'start' ? 'Start' : 'End'} City</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowCityPopup(null)}
+                    className="p-1 hover:bg-gray-100 rounded-full"
+                  >
+                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="p-4">
+                  <input
+                    type="text"
+                    placeholder="Search locations..."
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:ring-2 focus:ring-[#18181b]/20 focus:border-[#18181b] mb-4 text-[#3F3F42]"
+                    value={locationSearch}
+                    onChange={(e) => setLocationSearch(e.target.value)}
+                    autoFocus
                   />
-                </svg>
-                <p className="mt-2 text-sm text-gray-600">
-                  Click to select or upload images
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  Select from library or upload from device
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {images.map((img, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-md overflow-hidden bg-white"
-                >
-                  <div className="relative">
-                    <img
-                      src={img.preview}
-                      alt="Preview"
-                      className="w-full h-32 object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                    >
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                    {img.isPrimary && (
-                      <div className="absolute top-1 left-1 bg-[#18181b] text-white px-2 py-0.5 rounded text-xs">
-                        Primary
+                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                    {destinations
+                      .filter(d => d.name.toLowerCase().includes(locationSearch.toLowerCase()))
+                      .slice(0, 10)
+                      .map((d) => (
+                        <button
+                          key={d._id || d.name}
+                          type="button"
+                          className="w-full text-left px-4 py-3 hover:bg-[#f4f4f5] rounded-md transition-colors flex items-center gap-3 group"
+                          onClick={() => {
+                            if (showCityPopup === 'start') {
+                              setFormData(prev => ({ ...prev, startCity: d.name }));
+                            } else {
+                              setFormData(prev => ({ ...prev, endCity: d.name }));
+                            }
+                            setShowCityPopup(null);
+                            setLocationSearch("");
+                          }}
+                        >
+                          <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center group-hover:bg-[#f4f4f5]">
+                            <svg className="w-4 h-4 text-gray-500 group-hover:text-[#18181b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#3F3F42] group-hover:text-[#18181b]">{d.name}</p>
+                          </div>
+                        </button>
+                      ))}
+                    {destinations.filter(d => d.name.toLowerCase().includes(locationSearch.toLowerCase())).length === 0 && (
+                      <div className="text-center py-8 text-gray-500 text-sm flex flex-col items-center gap-3">
+                        <p>No locations found</p>
+                        {locationSearch.trim() !== "" && (
+                          <button
+                            type="button"
+                            onClick={handleAddLocation}
+                            disabled={addingLocation}
+                            className="px-4 py-2 bg-[#18181b] text-white rounded-md text-sm font-medium hover:bg-[#27272a] transition disabled:opacity-50"
+                          >
+                            {addingLocation ? "Adding..." : `Add "${locationSearch.trim()}"`}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
-                  <div className="p-2">
-                    <input
-                      type="text"
-                      value={img.caption}
-                      onChange={(e) =>
-                        updateImageCaption(index, e.target.value)
-                      }
-                      placeholder="Caption"
-                      className="w-full px-2 py-1 border border-gray-200 rounded text-sm mb-1 text-[#3F3F42]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setImageAsPrimary(index)}
-                      className={`w-full py-1 rounded text-xs transition ${img.isPrimary
-                        ? "bg-[#18181b] text-white"
-                        : "bg-gray-100 text-[#3F3F42] hover:bg-gray-200"
-                        }`}
-                    >
-                      {img.isPrimary ? "Primary" : "Set Primary"}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {images.length === 0 && (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                No images uploaded yet
-              </div>
-            )}
-          </div>
-
-          {/* Pricing Section */}
-          <div className="bg-white rounded-xl shadow-sm border p-8">
-            <h3 className="text-lg font-semibold text-[#3F3F42] mb-4">
-              Pricing
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                  Base Price <span className="text-red-500">*</span>
-                </label>
-                <input
-                  required
-                  type="number"
-                  name="priceAmount"
-                  value={formData.priceAmount}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                  placeholder="1299.00"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                  Currency
-                </label>
-                <select
-                  name="priceCurrency"
-                  value={formData.priceCurrency}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="INR">INR</option>
-                </select>
-              </div>
-
-
-
-              <div>
-                <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                  Booking Type
-                </label>
-                <select
-                  name="bookingType"
-                  value={formData.bookingType}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                >
-                  <option value="Percentage">Percentage</option>
-                  <option value="Amount">Amount</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                  {formData.bookingType === "Percentage" ? "Booking Percentage %" : "Booking Amount"}
-                </label>
-                <input
-                  type="number"
-                  name={formData.bookingType === "Percentage" ? "bookingPercentage" : "bookingAmount"}
-                  value={formData.bookingType === "Percentage" ? formData.bookingPercentage : formData.bookingAmount}
-                  onChange={handleChange}
-                  min="0"
-                  max={formData.bookingType === "Percentage" ? "100" : undefined}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                  placeholder={formData.bookingType === "Percentage" ? "20" : "500"}
-                />
-              </div>
-
-              <div className="flex items-center md:col-span-3 mt-2">
-                <input
-                  type="checkbox"
-                  id="exemptFromLifetimeDeposit"
-                  name="exemptFromLifetimeDeposit"
-                  checked={formData.exemptFromLifetimeDeposit}
-                  onChange={handleChange}
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded cursor-pointer"
-                />
-                <label htmlFor="exemptFromLifetimeDeposit" className="ml-2 block text-sm text-[#3F3F42] font-semibold cursor-pointer">
-                  Exempt from Lifetime Deposit
-                </label>
-              </div>
-
-            </div>
-          </div>
-
-
-          {/* Add-ons Section */}
-          <div className="bg-white rounded-xl shadow-sm border p-8">
-            <h3 className="text-lg font-semibold text-[#3F3F42] mb-4">
-              Add-ons
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                  Add your own room price
-                </label>
-                <input
-                  type="number"
-                  name="ownRoomPrice"
-                  value={formData.ownRoomPrice}
-                  onChange={handleChange}
-                  min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Tree Planting Section */}
-          {formData.country && (
-            <div className="bg-white rounded-xl shadow-sm border p-8">
-              <h3 className="text-lg font-semibold text-[#3F3F42] mb-4">
-                Tree Planting Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Planting Location
-                  </label>
-                  {plantingLocations.length > 0 ? (
-                    <select
-                      name="plantingLocation"
-                      value={formData.plantingLocation}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] bg-white"
-                    >
-                      <option value="">-- Select Planting Location --</option>
-                      {plantingLocations.map((pl) => (
-                        <option key={pl._id} value={pl._id}>
-                          {pl.locationName} ({pl.plantSpecies?.join(", ")})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm">
-                      No planting locations registered for this country. Manage them in{" "}
-                      <Link href="/admin/planting-locations" className="underline font-semibold hover:text-amber-950">
-                        Planting Locations
-                      </Link>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                    Number of Trees Planted (after completion)
-                  </label>
-                  <input
-                    type="number"
-                    name="treesPlanted"
-                    value={formData.treesPlanted}
-                    onChange={handleChange}
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    placeholder="0"
-                  />
                 </div>
               </div>
             </div>
           )}
-          </div>
+
+          {showLocationPopup && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#3F3F42]/50 backdrop-blur-sm">
+              <div className="bg-white rounded-md w-full max-w-md shadow-2xl overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-bold text-[#3F3F42]">Select Location</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationPopup(null)}
+                    className="p-1 hover:bg-gray-100 rounded-full"
+                  >
+                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="p-4">
+                  <input
+                    type="text"
+                    placeholder="Search locations..."
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:ring-2 focus:ring-[#18181b]/20 focus:border-[#18181b] mb-4 text-[#3F3F42]"
+                    value={locationSearch}
+                    onChange={(e) => setLocationSearch(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                    {destinations
+                      .filter(d => d.name.toLowerCase().includes(locationSearch.toLowerCase()))
+                      .slice(0, 10)
+                      .map((d) => (
+                        <button
+                          key={d._id || d.name}
+                          type="button"
+                          className="w-full text-left px-4 py-3 hover:bg-[#f4f4f5] rounded-md transition-colors flex items-center gap-3 group"
+                          onClick={() => {
+                            const dayIndex = showLocationPopup.dayIndex;
+                            const currentTags = itinerary[dayIndex].title ? itinerary[dayIndex].title.split(",").filter(t => t.trim()) : [];
+                            if (!currentTags.includes(d.name) && currentTags.length < 2) {
+                              const newTitle = [...currentTags, d.name].join(",");
+                              updateItinerary(dayIndex, "title", newTitle);
+                            }
+                            setShowLocationPopup(null);
+                            setLocationSearch("");
+                          }}
+                        >
+                          <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center group-hover:bg-[#f4f4f5]">
+                            <svg className="w-4 h-4 text-gray-500 group-hover:text-[#18181b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <span className="font-medium text-[#3F3F42]">{d.name}</span>
+                        </button>
+                      ))}
+                    {destinations.filter(d => d.name.toLowerCase().includes(locationSearch.toLowerCase())).length === 0 && (
+                      <div className="text-center py-8 text-gray-500 text-sm flex flex-col items-center gap-3">
+                        <p>No locations found</p>
+                        {locationSearch.trim() !== "" && (
+                          <button
+                            type="button"
+                            onClick={handleAddLocation}
+                            disabled={addingLocation}
+                            className="px-4 py-2 bg-[#18181b] text-white rounded-md text-sm font-medium hover:bg-[#27272a] transition disabled:opacity-50"
+                          >
+                            {addingLocation ? "Adding..." : `Add "${locationSearch.trim()}"`}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showActivityPopup && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#3F3F42]/50 backdrop-blur-sm">
+              <div className="bg-white rounded-md w-full max-w-md shadow-2xl overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-bold text-[#3F3F42]">Select Activity</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowActivityPopup(null)}
+                    className="p-1 hover:bg-gray-100 rounded-full"
+                  >
+                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="p-4">
+                  <input
+                    type="text"
+                    placeholder="Search activities..."
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:ring-2 focus:ring-[#18181b]/20 focus:border-[#18181b] mb-4 text-[#3F3F42]"
+                    value={activitySearch}
+                    onChange={(e) => setActivitySearchInput(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                    {activityOptions
+                      .filter(opt => {
+                        const dayIndex = showActivityPopup.dayIndex;
+                        const dayLocations = itinerary[dayIndex].title ? itinerary[dayIndex].title.split(",").filter(t => t.trim()) : [];
+
+                        // Filter by selected country
+                        const destId = typeof opt.destination === "string" ? opt.destination : opt.destination?._id;
+                        if (destId !== formData.country) return false;
+
+                        // Filter by selected location tags for the day
+                        if (!opt.location || !dayLocations.includes(opt.location)) return false;
+
+                        // Filter by search query
+                        if (activitySearch && !opt.title.toLowerCase().includes(activitySearch.toLowerCase())) return false;
+
+                        return true;
+                      })
+                      .slice(0, 10)
+                      .map((opt) => (
+                        <button
+                          key={opt._id}
+                          type="button"
+                          className="w-full text-left px-4 py-3 hover:bg-[#f4f4f5] rounded-md transition-colors flex items-center gap-3 group"
+                          onClick={() => {
+                            applyActivityOption(
+                              showActivityPopup.dayIndex,
+                              showActivityPopup.activityIndex,
+                              opt._id,
+                              showActivityPopup.isOptional
+                            );
+                            setShowActivityPopup(null);
+                            setActivitySearchInput("");
+                          }}
+                        >
+                          <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center group-hover:bg-[#f4f4f5]">
+                            <svg className="w-4 h-4 text-gray-500 group-hover:text-[#18181b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <span className="font-medium text-[#3F3F42] block text-sm">{opt.title}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-gray-500 font-medium">{opt.location}</span>
+                              <span className="text-xs text-gray-300">•</span>
+                              {opt.isFree ? (
+                                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Free</span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-[#18181b] bg-[#f4f4f5] px-1.5 py-0.5 rounded">${opt.price}</span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    {activityOptions.filter(opt => {
+                      const dayIndex = showActivityPopup.dayIndex;
+                      const dayLocations = itinerary[dayIndex].title ? itinerary[dayIndex].title.split(",").filter(t => t.trim()) : [];
+                      const destId = typeof opt.destination === "string" ? opt.destination : opt.destination?._id;
+                      if (destId !== formData.country) return false;
+                      if (!opt.location || !dayLocations.includes(opt.location)) return false;
+                      if (activitySearch && !opt.title.toLowerCase().includes(activitySearch.toLowerCase())) return false;
+                      return true;
+                    }).length === 0 && (
+                        <div className="text-center py-8 text-gray-500 text-sm">
+                          No activities found matching your criteria
+                        </div>
+                      )}
+                  </div>
+                  {/* Create Activity Button */}
+                  <div className="pt-3 mt-3 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateActivityModal(true)}
+                      className="w-full text-center px-4 py-2.5 bg-[#3F3F42] text-white rounded-md text-sm font-medium hover:bg-[#3F3F42] transition"
+                    >
+                      + Create New Activity
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+          {/* ==================== STEP 2: MEDIA & PRICING ==================== */}
+          {currentStep === 2 && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <Box sx={{ px: 0.5 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.25rem", mb: 0.5 }}>
+                  Media & Pricing
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem" }}>
+                  Upload tour gallery images, configure pricing tiers, booking deposits, and eco-initiatives.
+                </Typography>
+              </Box>
+
+              {/* Images Section */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2.5, sm: 3.5 },
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a", mb: 0.5, fontSize: "0.95rem" }}>
+                  Tour Gallery Images
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", mb: 3, fontSize: "0.8125rem" }}>
+                  Upload high-resolution images. Set one as primary for catalog cards.
+                </Typography>
+
+                <Paper
+                  variant="outlined"
+                  onClick={() => setImagePickerModal({ isOpen: true, target: "main", multiple: true })}
+                  sx={{
+                    p: 3.5,
+                    textAlign: "center",
+                    cursor: "pointer",
+                    borderRadius: "6px",
+                    borderColor: "#cbd5e1",
+                    borderStyle: "dashed",
+                    bgcolor: "#f8fafc",
+                    mb: 3,
+                    "&:hover": { borderColor: "#0f172a", bgcolor: "#f1f5f9" },
+                  }}
+                >
+                  <CloudUploadOutlinedIcon sx={{ fontSize: 36, color: "#64748b", mb: 1 }} />
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>
+                    Click to select or upload images
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+                    Upload multiple files or choose from media asset library
+                  </Typography>
+                </Paper>
+
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2 }}>
+                  {images.map((img, index) => (
+                    <Paper
+                      key={index}
+                      variant="outlined"
+                      sx={{
+                        borderRadius: "6px",
+                        overflow: "hidden",
+                        borderColor: img.isPrimary ? "#0f172a" : "#e2e8f0",
+                        bgcolor: "#ffffff",
+                      }}
+                    >
+                      <Box sx={{ position: "relative" }}>
+                        <img src={img.preview} alt="Preview" style={{ width: "100%", height: 130, objectFit: "cover" }} />
+                        <IconButton
+                          size="small"
+                          onClick={() => removeImage(index)}
+                          sx={{
+                            position: "absolute",
+                            top: 6,
+                            right: 6,
+                            bgcolor: "rgba(15,23,42,0.7)",
+                            color: "#ffffff",
+                            "&:hover": { bgcolor: "#ef4444" },
+                          }}
+                        >
+                          <DeleteOutlineRoundedIcon fontSize="small" />
+                        </IconButton>
+                        {img.isPrimary && (
+                          <Chip
+                            label="Primary"
+                            size="small"
+                            sx={{
+                              position: "absolute",
+                              top: 6,
+                              left: 6,
+                              bgcolor: "#0f172a",
+                              color: "#ffffff",
+                              fontWeight: 600,
+                              fontSize: "0.68rem",
+                              height: 20,
+                            }}
+                          />
+                        )}
+                      </Box>
+                      <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
+                        <TextField
+                          size="small"
+                          placeholder="Image caption..."
+                          value={img.caption}
+                          onChange={(e) => updateImageCaption(index, e.target.value)}
+                          fullWidth
+                        />
+                        <Button
+                          size="small"
+                          variant={img.isPrimary ? "contained" : "outlined"}
+                          onClick={() => setImageAsPrimary(index)}
+                          sx={{
+                            textTransform: "none",
+                            fontSize: "0.75rem",
+                            borderRadius: "4px",
+                            fontWeight: 600,
+                            bgcolor: img.isPrimary ? "#0f172a" : "transparent",
+                            color: img.isPrimary ? "#ffffff" : "#475569",
+                            borderColor: "#cbd5e1",
+                            "&:hover": {
+                              bgcolor: img.isPrimary ? "#1e293b" : "#f8fafc",
+                            },
+                          }}
+                        >
+                          {img.isPrimary ? "Primary Cover" : "Set as Primary"}
+                        </Button>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Box>
+
+                {images.length === 0 && (
+                  <Box sx={{ textAlign: "center", py: 3, color: "#94a3b8", fontSize: "0.8125rem" }}>
+                    No images uploaded yet
+                  </Box>
+                )}
+              </Paper>
+
+              {/* Pricing Section */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2.5, sm: 3.5 },
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a", mb: 0.5, fontSize: "0.95rem" }}>
+                  Pricing & Deposit
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", mb: 3, fontSize: "0.8125rem" }}>
+                  Set base booking prices, currency, and payment requirements.
+                </Typography>
+
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2.5 }}>
+                  <TextField
+                    label="Base Price"
+                    required
+                    type="number"
+                    name="priceAmount"
+                    value={formData.priceAmount}
+                    onChange={handleChange}
+                    fullWidth
+                    size="small"
+                    placeholder="1299.00"
+                    slotProps={{
+                      htmlInput: { min: 0, step: "0.01" },
+                      inputLabel: { shrink: true },
+                    }}
+                  />
+
+                  <TextField
+                    select
+                    label="Currency"
+                    name="priceCurrency"
+                    value={formData.priceCurrency}
+                    onChange={handleChange}
+                    fullWidth
+                    size="small"
+                    slotProps={{ inputLabel: { shrink: true } }}
+                  >
+                    <MenuItem value="USD">USD ($)</MenuItem>
+                    <MenuItem value="EUR">EUR (€)</MenuItem>
+                    <MenuItem value="GBP">GBP (£)</MenuItem>
+                    <MenuItem value="INR">INR (₹)</MenuItem>
+                  </TextField>
+
+                  <TextField
+                    select
+                    label="Booking Type"
+                    name="bookingType"
+                    value={formData.bookingType}
+                    onChange={handleChange}
+                    fullWidth
+                    size="small"
+                    slotProps={{ inputLabel: { shrink: true } }}
+                  >
+                    <MenuItem value="Percentage">Percentage (%)</MenuItem>
+                    <MenuItem value="Amount">Fixed Amount</MenuItem>
+                  </TextField>
+
+                  <TextField
+                    type="number"
+                    label={formData.bookingType === "Percentage" ? "Booking Percentage (%)" : "Booking Amount"}
+                    name={formData.bookingType === "Percentage" ? "bookingPercentage" : "bookingAmount"}
+                    value={formData.bookingType === "Percentage" ? formData.bookingPercentage : formData.bookingAmount}
+                    onChange={handleChange}
+                    fullWidth
+                    size="small"
+                    placeholder={formData.bookingType === "Percentage" ? "20" : "500"}
+                    slotProps={{
+                      htmlInput: { min: 0, max: formData.bookingType === "Percentage" ? 100 : undefined },
+                      inputLabel: { shrink: true },
+                    }}
+                  />
+
+                  <Box sx={{ gridColumn: { sm: "span 3" }, pt: 0.5 }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={formData.exemptFromLifetimeDeposit}
+                          onChange={handleChange}
+                          name="exemptFromLifetimeDeposit"
+                          size="small"
+                          sx={{ color: "#94a3b8", "&.Mui-checked": { color: "#0f172a" } }}
+                        />
+                      }
+                      label={<Typography variant="body2" sx={{ fontSize: "0.8125rem", fontWeight: 500, color: "#334155" }}>Exempt from Lifetime Deposit</Typography>}
+                    />
+                  </Box>
+                </Box>
+              </Paper>
+
+              {/* Add-ons Section */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2.5, sm: 3.5 },
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a", mb: 0.5, fontSize: "0.95rem" }}>
+                  Add-on Options
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", mb: 3, fontSize: "0.8125rem" }}>
+                  Optional supplemental pricing options for solo travelers or custom upgrades.
+                </Typography>
+
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2.5 }}>
+                  <TextField
+                    type="number"
+                    label="Own Room Supplement Price"
+                    name="ownRoomPrice"
+                    value={formData.ownRoomPrice}
+                    onChange={handleChange}
+                    fullWidth
+                    size="small"
+                    placeholder="0"
+                    slotProps={{
+                      htmlInput: { min: 0 },
+                      inputLabel: { shrink: true },
+                    }}
+                  />
+                </Box>
+              </Paper>
+
+              {/* Tree Planting Section */}
+              {formData.country && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: { xs: 2.5, sm: 3.5 },
+                    borderRadius: "6px",
+                    border: "1px solid #e2e8f0",
+                    bgcolor: "#ffffff",
+                  }}
+                >
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a", mb: 0.5, fontSize: "0.95rem" }}>
+                    Tree Planting Information
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#64748b", mb: 3, fontSize: "0.8125rem" }}>
+                    Sustainability initiative contribution for each confirmed traveller.
+                  </Typography>
+
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2.5 }}>
+                    <Box>
+                      {plantingLocations.length > 0 ? (
+                        <TextField
+                          select
+                          label="Planting Location"
+                          name="plantingLocation"
+                          value={formData.plantingLocation}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          slotProps={{ inputLabel: { shrink: true } }}
+                        >
+                          <MenuItem value=""><em>-- Select Planting Location --</em></MenuItem>
+                          {plantingLocations.map((pl) => (
+                            <MenuItem key={pl._id} value={pl._id}>
+                              {pl.locationName} ({pl.plantSpecies?.join(", ")})
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      ) : (
+                        <Box sx={{ p: 1.5, bgcolor: "#fffbeb", border: "1px solid #fef3c7", borderRadius: "6px", color: "#92400e", fontSize: "0.8125rem" }}>
+                          No planting locations registered for this country. Manage them in{" "}
+                          <Link href="/admin/planting-locations" style={{ color: "#78350f", fontWeight: 600 }}>
+                            Planting Locations
+                          </Link>
+                        </Box>
+                      )}
+                    </Box>
+
+                    <TextField
+                      type="number"
+                      label="Number of Trees Planted (after completion)"
+                      name="treesPlanted"
+                      value={formData.treesPlanted}
+                      onChange={handleChange}
+                      fullWidth
+                      size="small"
+                      placeholder="0"
+                      slotProps={{
+                        htmlInput: { min: 0 },
+                        inputLabel: { shrink: true },
+                      }}
+                    />
+                  </Box>
+                </Paper>
+              )}
+            </Box>
           )}
 
           {/* ==================== STEP 3: ITINERARY ==================== */}
           {currentStep === 3 && (
-          <div className="space-y-6">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <h2 className="text-[32px] font-medium text-[#2C3238] leading-tight">Itinerary Builder</h2>
-          </div>
-          {/* Itinerary Section */}
-          {formData.country ? (
-            <div className="bg-white rounded-xl shadow-sm border p-8">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-[#3F3F42]">
-                  Itinerary
-                </h3>
-                <button
-                  type="button"
-                  onClick={addItineraryDay}
-                  className="bg-[#3F3F42] text-white px-4 py-2 rounded-md text-sm hover:bg-[#3F3F42] transition"
-                >
-                  + Add Day
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {itinerary.map((day, dayIndex) => (
-                  <div
-                    key={dayIndex}
-                    className="border border-gray-200 rounded-md p-6 bg-gray-50"
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <Box sx={{ px: 0.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.25rem", mb: 0.5 }}>
+                    Itinerary Builder
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem" }}>
+                    Configure daily schedules, included activities, optional excursions, and accommodations.
+                  </Typography>
+                </Box>
+                {formData.country && (
+                  <Button
+                    type="button"
+                    variant="contained"
+                    size="small"
+                    startIcon={<AddRoundedIcon />}
+                    onClick={addItineraryDay}
+                    sx={{
+                      bgcolor: "#0f172a",
+                      color: "#ffffff",
+                      borderRadius: "6px",
+                      textTransform: "none",
+                      fontWeight: 600,
+                      "&:hover": { bgcolor: "#1e293b" },
+                    }}
                   >
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-lg font-semibold text-[#3F3F42]">
-                        Day {day.day}
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => removeItineraryDay(dayIndex)}
-                        className="text-red-500 hover:text-red-700 text-sm bg-white px-2 py-1 rounded border"
+                    Add Day
+                  </Button>
+                )}
+              </Box>
+
+              {formData.country ? (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: { xs: 2.5, sm: 3.5 },
+                    borderRadius: "6px",
+                    border: "1px solid #e2e8f0",
+                    bgcolor: "#ffffff",
+                  }}
+                >
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    {itinerary.map((day, dayIndex) => (
+                      <Paper
+                        key={dayIndex}
+                        variant="outlined"
+                        sx={{
+                          p: 3,
+                          borderRadius: "6px",
+                          borderColor: "#e2e8f0",
+                          bgcolor: "#f8fafc",
+                        }}
                       >
-                        Remove Day
-                      </button>
-                    </div>
-
-                    {/* Basic day info */}
-                    <div className="space-y-3 mb-6">
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {(day.title ? day.title.split(",").filter(t => t.trim()) : []).map((tag, tagIndex) => (
-                          <span key={tagIndex} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#f4f4f5] text-[#18181b] text-xs font-medium border border-gray-250">
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const currentTags = day.title.split(",").filter(t => t.trim());
-                                currentTags.splice(tagIndex, 1);
-                                updateItinerary(dayIndex, "title", currentTags.join(","));
-                              }}
-                              className="hover:text-[#27272a]"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </span>
-                        ))}
-                        {(day.title ? day.title.split(",").filter(t => t.trim()).length : 0) < 2 && (
-                          <button
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.95rem" }}>
+                            Day {day.day}
+                          </Typography>
+                          <Button
                             type="button"
-                            onClick={() => {
-                              setShowLocationPopup({ dayIndex });
-                              setLocationSearch("");
-                            }}
-                            className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium border border-gray-200 hover:bg-gray-200 transition"
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                            startIcon={<DeleteOutlineRoundedIcon fontSize="small" />}
+                            onClick={() => removeItineraryDay(dayIndex)}
+                            sx={{ textTransform: "none", borderRadius: "6px", fontSize: "0.75rem" }}
                           >
-                            + Add Location Tag
-                          </button>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                          Day Description <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          value={day.description}
-                          onChange={(e) =>
-                            updateItinerary(dayIndex, "description", e.target.value)
-                          }
-                          placeholder="Day description"
-                          rows={2}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] bg-white"
-                        />
-                      </div>
+                            Remove Day
+                          </Button>
+                        </Box>
 
-                      <div>
-                        <label className="block text-sm font-medium text-[#3F3F42] mb-1">
-                          Important Note (Optional)
-                        </label>
-                        <textarea
-                          value={day.importantNote || ""}
-                          onChange={(e) =>
-                            updateItinerary(dayIndex, "importantNote", e.target.value)
-                          }
-                          placeholder="Important note (Optional)"
-                          rows={2}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] bg-white"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Activities Section */}
-                    {(day.title ? day.title.split(",").filter(t => t.trim()).length : 0) > 0 && (
-                      <div className="mb-6">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="text-md font-semibold text-[#3F3F42]">
-                            Activities
-                          </h4>
-                        </div>
-
-                        <div className="space-y-3">
-                          {day.activities.map((activity, actIndex) => (
-                            <div
-                              key={actIndex}
-                              className="bg-white p-4 rounded border border-gray-200"
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <h5 className="text-sm font-semibold text-[#3F3F42]">
-                                  {activity.title || activity.name || `Activity #${actIndex + 1}`}
-                                </h5>
-                                <button
-                                  type="button"
-                                  onClick={() => removeActivity(dayIndex, actIndex)}
-                                  className="text-red-500 hover:text-red-700 text-xs"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-
-                              <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-                                <p className="text-xs text-gray-500 mb-2">
-                                  Select activity name only. Other details are auto-filled from Admin Activities.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setShowActivityPopup({ dayIndex, activityIndex: actIndex, isOptional: false });
-                                    setActivitySearchInput("");
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          {/* Location tags */}
+                          <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: "#475569", display: "block", mb: 0.5 }}>
+                              Location Tags (up to 2)
+                            </Typography>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                              {(day.title ? day.title.split(",").filter(t => t.trim()) : []).map((tag, tagIndex) => (
+                                <Chip
+                                  key={tagIndex}
+                                  label={tag}
+                                  size="small"
+                                  onDelete={() => {
+                                    const currentTags = day.title.split(",").filter(t => t.trim());
+                                    currentTags.splice(tagIndex, 1);
+                                    updateItinerary(dayIndex, "title", currentTags.join(","));
                                   }}
-                                  className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-md hover:border-[#18181b] transition-colors flex items-center justify-between group"
+                                  sx={{ borderRadius: "4px", bgcolor: "#ffffff", border: "1px solid #cbd5e1", fontWeight: 500 }}
+                                />
+                              ))}
+                              {(day.title ? day.title.split(",").filter(t => t.trim()).length : 0) < 2 && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  startIcon={<AddRoundedIcon fontSize="small" />}
+                                  onClick={() => {
+                                    setShowLocationPopup({ dayIndex });
+                                    setLocationSearch("");
+                                  }}
+                                  sx={{
+                                    textTransform: "none",
+                                    fontSize: "0.75rem",
+                                    borderRadius: "4px",
+                                    borderColor: "#cbd5e1",
+                                    color: "#475569",
+                                    bgcolor: "#ffffff",
+                                  }}
                                 >
-                                  <span className="text-sm text-[#3F3F42]">
-                                    {activity.title || activity.name || "Select activity..."}
-                                  </span>
-                                  <svg className="w-5 h-5 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </button>
+                                  Add Location Tag
+                                </Button>
+                              )}
+                            </Box>
+                          </Box>
 
+                          {/* Day description */}
+                          <TextField
+                            label="Day Description"
+                            required
+                            multiline
+                            rows={2}
+                            fullWidth
+                            size="small"
+                            placeholder="Detailed activities, route, and highlights for this day..."
+                            value={day.description}
+                            onChange={(e) => updateItinerary(dayIndex, "description", e.target.value)}
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            sx={{ bgcolor: "#ffffff" }}
+                          />
 
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => addActivity(dayIndex)}
-                          className="w-full bg-[#3F3F42] text-white px-4 py-2 rounded-md text-sm hover:bg-[#3F3F42] transition mt-4"
-                        >
-                          + Add Activity
-                        </button>
-                      </div>
+                          {/* Important Note */}
+                          <TextField
+                            label="Important Note (Optional)"
+                            multiline
+                            rows={2}
+                            fullWidth
+                            size="small"
+                            placeholder="Passport checks, altitude advisory, packing tips..."
+                            value={day.importantNote || ""}
+                            onChange={(e) => updateItinerary(dayIndex, "importantNote", e.target.value)}
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            sx={{ bgcolor: "#ffffff" }}
+                          />
+
+                          {/* Activities Section */}
+                          {(day.title ? day.title.split(",").filter(t => t.trim()).length : 0) > 0 && (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: "#334155", display: "block", mb: 1, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                Included Activities
+                              </Typography>
+                              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                                {day.activities.map((activity, actIndex) => (
+                                  <Paper
+                                    key={actIndex}
+                                    variant="outlined"
+                                    sx={{ p: 1.5, borderRadius: "6px", bgcolor: "#ffffff", borderColor: "#e2e8f0" }}
+                                  >
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                                        {activity.title || activity.name || `Activity #${actIndex + 1}`}
+                                      </Typography>
+                                      <Button
+                                        size="small"
+                                        color="error"
+                                        onClick={() => removeActivity(dayIndex, actIndex)}
+                                        sx={{ textTransform: "none", fontSize: "0.75rem", p: 0 }}
+                                      >
+                                        Remove
+                                      </Button>
+                                    </Box>
+                                    <TextField
+                                      size="small"
+                                      fullWidth
+                                      value={activity.title || activity.name || ""}
+                                      placeholder="Click to select activity from admin database"
+                                      onClick={() => {
+                                        setShowActivityPopup({ dayIndex, activityIndex: actIndex, isOptional: false });
+                                        setActivitySearchInput("");
+                                      }}
+                                      slotProps={{
+                                        input: {
+                                          readOnly: true,
+                                          sx: { cursor: "pointer", fontSize: "0.8125rem" },
+                                          endAdornment: (
+                                            <InputAdornment position="end">
+                                              <ChevronRightRoundedIcon fontSize="small" sx={{ color: "#64748b" }} />
+                                            </InputAdornment>
+                                          ),
+                                        },
+                                      }}
+                                    />
+                                  </Paper>
+                                ))}
+                              </Box>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<AddRoundedIcon fontSize="small" />}
+                                onClick={() => addActivity(dayIndex)}
+                                sx={{ mt: 1.5, textTransform: "none", borderRadius: "6px", color: "#334155", borderColor: "#cbd5e1" }}
+                              >
+                                Add Activity
+                              </Button>
+                            </Box>
+                          )}
+
+                          {/* Optional Activities */}
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: "#334155", display: "block", mb: 1, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                              Optional Excursions
+                            </Typography>
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                              {day.optionalActivities.map((optActivity, optIndex) => (
+                                <Paper
+                                  key={optIndex}
+                                  variant="outlined"
+                                  sx={{ p: 1.5, borderRadius: "6px", bgcolor: "#ffffff", borderColor: "#e2e8f0" }}
+                                >
+                                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                                      {optActivity.title || optActivity.name || `Optional Activity #${optIndex + 1}`}
+                                    </Typography>
+                                    <Button
+                                      size="small"
+                                      color="error"
+                                      onClick={() => removeOptionalActivity(dayIndex, optIndex)}
+                                      sx={{ textTransform: "none", fontSize: "0.75rem", p: 0 }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </Box>
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    value={optActivity.title || optActivity.name || ""}
+                                    placeholder="Click to select optional activity"
+                                    onClick={() => {
+                                      setShowActivityPopup({ dayIndex, activityIndex: optIndex, isOptional: true });
+                                      setActivitySearchInput("");
+                                    }}
+                                    slotProps={{
+                                      input: {
+                                        readOnly: true,
+                                        sx: { cursor: "pointer", fontSize: "0.8125rem" },
+                                        endAdornment: (
+                                          <InputAdornment position="end">
+                                            <ChevronRightRoundedIcon fontSize="small" sx={{ color: "#64748b" }} />
+                                          </InputAdornment>
+                                        ),
+                                      },
+                                    }}
+                                  />
+                                </Paper>
+                              ))}
+                            </Box>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<AddRoundedIcon fontSize="small" />}
+                              onClick={() => addOptionalActivity(dayIndex)}
+                              sx={{ mt: 1.5, textTransform: "none", borderRadius: "6px", color: "#334155", borderColor: "#cbd5e1" }}
+                            >
+                              Add Optional Activity
+                            </Button>
+                          </Box>
+
+                          {/* Accommodations */}
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: "#334155", display: "block", mb: 1, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                              Accommodations
+                            </Typography>
+                            {day.accommodations.map((acc, accIndex) => (
+                              <Box key={accIndex} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "2fr 1fr" }, gap: 1.5 }}>
+                                <TextField
+                                  label="Accommodation Name"
+                                  size="small"
+                                  value={acc.name}
+                                  onChange={(e) => updateAccommodation(dayIndex, accIndex, "name", e.target.value)}
+                                  placeholder="e.g., Mountain Lodge Hotel"
+                                  slotProps={{ inputLabel: { shrink: true } }}
+                                  sx={{ bgcolor: "#ffffff" }}
+                                />
+                                <TextField
+                                  select
+                                  label="Type"
+                                  size="small"
+                                  value={acc.type}
+                                  onChange={(e) => updateAccommodation(dayIndex, accIndex, "type", e.target.value)}
+                                  slotProps={{ inputLabel: { shrink: true } }}
+                                  sx={{ bgcolor: "#ffffff" }}
+                                >
+                                  <MenuItem value="Hotel">Hotel</MenuItem>
+                                  <MenuItem value="Lounge">Lounge</MenuItem>
+                                  <MenuItem value="Cottage">Cottage</MenuItem>
+                                  <MenuItem value="Guestroom">Guestroom</MenuItem>
+                                  <MenuItem value="Camp">Camp</MenuItem>
+                                </TextField>
+                              </Box>
+                            ))}
+                          </Box>
+
+                          {/* Meals */}
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: "#334155", display: "block", mb: 1, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                              Included Meals
+                            </Typography>
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                              {["Breakfast", "Lunch", "Dinner"].map((meal) => {
+                                const currentMeals = day.meals ? day.meals.split(",").map(m => m.trim()) : [];
+                                const isSelected = currentMeals.includes(meal);
+                                return (
+                                  <Chip
+                                    key={meal}
+                                    label={meal}
+                                    clickable
+                                    variant={isSelected ? "filled" : "outlined"}
+                                    onClick={() => {
+                                      let newMeals;
+                                      if (isSelected) {
+                                        newMeals = currentMeals.filter(m => m !== meal).join(",");
+                                      } else {
+                                        newMeals = [...currentMeals, meal].join(",");
+                                      }
+                                      updateItinerary(dayIndex, "meals", newMeals);
+                                    }}
+                                    sx={{
+                                      borderRadius: "6px",
+                                      fontWeight: 600,
+                                      fontSize: "0.8125rem",
+                                      bgcolor: isSelected ? "#0f172a" : "#ffffff",
+                                      color: isSelected ? "#ffffff" : "#475569",
+                                      borderColor: isSelected ? "#0f172a" : "#cbd5e1",
+                                      "&:hover": {
+                                        bgcolor: isSelected ? "#1e293b" : "#f1f5f9",
+                                      },
+                                    }}
+                                  />
+                                );
+                              })}
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    ))}
+
+                    {itinerary.length === 0 && (
+                      <Box sx={{ textAlign: "center", py: 4, color: "#94a3b8", fontSize: "0.875rem" }}>
+                        No itinerary days added yet. Click &quot;Add Day&quot; to begin.
+                      </Box>
                     )}
 
-                    {/* Optional Activities Section */}
-                    <div className="mb-6">
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="text-md font-semibold text-[#3F3F42]">
-                          Optional Activities
-                        </h4>
-                      </div>
-
-                      <div className="space-y-3">
-                        {day.optionalActivities.map((optActivity, optIndex) => (
-                          <div
-                            key={optIndex}
-                            className="bg-white p-4 rounded border border-gray-200"
-                          >
-                            <div className="flex justify-between items-start mb-3">
-                              <h5 className="text-sm font-semibold text-[#3F3F42]">
-                                {optActivity.title || optActivity.name || `Optional Activity #${optIndex + 1}`}
-                              </h5>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  removeOptionalActivity(dayIndex, optIndex)
-                                }
-                                className="text-red-500 hover:text-red-700 text-xs"
-                              >
-                                Remove
-                              </button>
-                            </div>                          <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-                              <p className="text-xs text-gray-500 mb-2">
-                                Select activity name only. Other details are auto-filled from Admin Activities.
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowActivityPopup({ dayIndex, activityIndex: optIndex, isOptional: true });
-                                  setActivitySearchInput("");
-                                }}
-                                className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-md hover:border-[#18181b] transition-colors flex items-center justify-between group"
-                              >
-                                <span className="text-sm text-[#3F3F42]">
-                                  {optActivity.title || optActivity.name || "Select activity..."}
-                                </span>
-                                <svg className="w-5 h-5 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-
-
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => addOptionalActivity(dayIndex)}
-                        className="w-full bg-[#3F3F42] text-white px-4 py-2 rounded-md text-sm hover:bg-[#3F3F42] transition mt-4"
-                      >
-                        + Add Optional Activity
-                      </button>
-                    </div>
-
-                    {/* Accommodation Section */}
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="text-md font-semibold text-[#3F3F42]">
-                          Accommodation
-                        </h4>
-                      </div>
-
-                      <div className="space-y-3">
-                        {day.accommodations.map((accommodation, accIndex) => (
-                          <div
-                            key={accIndex}
-                            className="bg-white p-4 rounded border border-gray-200"
-                          >
-                            <div className="flex justify-between items-start mb-3">
-                              <h5 className="text-sm font-medium text-[#3F3F42]">
-                                Accommodation
-                              </h5>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <input
-                                type="text"
-                                value={accommodation.name}
-                                onChange={(e) =>
-                                  updateAccommodation(
-                                    dayIndex,
-                                    accIndex,
-                                    "name",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder="Accommodation name"
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                              />
-                              <select
-                                value={accommodation.type}
-                                onChange={(e) =>
-                                  updateAccommodation(
-                                    dayIndex,
-                                    accIndex,
-                                    "type",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                              >
-                                <option value="Hotel">Hotel</option>
-                                <option value="Lounge">Lounge</option>
-                                <option value="Cottage">Cottage</option>
-                                <option value="Guestroom">Guestroom</option>
-                                <option value="Camp">Camp</option>
-                              </select>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Meals Section */}
-                    <div className="mb-4">
-                      <h4 className="text-md font-semibold text-[#3F3F42] mb-3">
-                        Meals
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {["Breakfast", "Lunch", "Dinner"].map((meal) => {
-                          const currentMeals = day.meals ? day.meals.split(",").map(m => m.trim()) : [];
-                          const isSelected = currentMeals.includes(meal);
-                          return (
-                            <button
-                              key={meal}
-                              type="button"
-                              onClick={() => {
-                                let newMeals;
-                                if (isSelected) {
-                                  newMeals = currentMeals.filter(m => m !== meal).join(",");
-                                } else {
-                                  newMeals = [...currentMeals, meal].join(",");
-                                }
-                                updateItinerary(dayIndex, "meals", newMeals);
-                              }}
-                              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${isSelected
-                                ? "bg-[#18181b] text-white border-blue-600"
-                                : "bg-gray-50 text-[#3F3F42] border-gray-200 hover:bg-gray-100"
-                                }`}
-                            >
-                              {meal}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {itinerary.length === 0 && (
-                <div className="text-center py-6 text-gray-500 text-sm">
-                  No itinerary days added yet
-                </div>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      fullWidth
+                      startIcon={<AddRoundedIcon />}
+                      onClick={addItineraryDay}
+                      sx={{
+                        py: 1,
+                        textTransform: "none",
+                        fontWeight: 600,
+                        borderRadius: "6px",
+                        borderColor: "#cbd5e1",
+                        color: "#0f172a",
+                        "&:hover": { bgcolor: "#f8fafc", borderColor: "#94a3b8" },
+                      }}
+                    >
+                      + Add Next Day
+                    </Button>
+                  </Box>
+                </Paper>
+              ) : (
+                <Paper
+                  elevation={0}
+                  sx={{ p: 4, textAlign: "center", borderRadius: "6px", border: "1px solid #e2e8f0", bgcolor: "#ffffff" }}
+                >
+                  <Typography variant="body2" sx={{ color: "#64748b" }}>
+                    Please select a destination country in Step 1 to build the itinerary.
+                  </Typography>
+                </Paper>
               )}
-
-              <button
-                type="button"
-                onClick={addItineraryDay}
-                className="w-full bg-[#3F3F42] text-white px-4 py-2 rounded-md text-sm hover:bg-[#3F3F42] transition mt-4"
-              >
-                + Add Day
-              </button>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
-              <p className="text-gray-500">Please select a destination in Step 1 to build the itinerary.</p>
-            </div>
-          )}
-          </div>
+            </Box>
           )}
 
           {/* ==================== STEP 4: HOTELS & INFO ==================== */}
           {currentStep === 4 && (
-          <div className="space-y-6">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <h2 className="text-[32px] font-medium text-[#2C3238] leading-tight">Hotels & Information</h2>
-          </div>
-          {/* Hotel Accommodation Section */}
-          {formData.country && (
-            <div className="bg-white rounded-xl shadow-sm border p-8">
-              <div className="flex justify-[#3F3F42] justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-[#3F3F42]">
-                  Pre & post-trip extra
-                </h3>
-              </div>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}>
+                  Hotels & Information
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b" }}>
+                  Configure pre & post-trip hotel options and essential traveler guidelines.
+                </Typography>
+              </Box>
 
-              <div className="grid grid-cols-1 gap-6">
-                {/* Pre-trip Hotel */}
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-[#3F3F42] mb-1">
-                      Pre-trip Hotel (Optional)
-                    </label>
-                    <div
-                      onClick={() => {
-                        setSearchHotelTarget("pre");
-                        setShowSearchHotelModal(true);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] bg-white cursor-pointer flex justify-between items-center min-h-[38px] hover:border-zinc-400 transition"
-                    >
-                      <span>
-                        {selectedPreHotelId
-                          ? hotels.find((h) => h._id === selectedPreHotelId)?.name || "Select hotel"
-                          : "Select Pre-trip Hotel"}
-                      </span>
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {selectedPreHotelId && (
-                    (() => {
-                      const hotel = hotels.find((h) => h._id === selectedPreHotelId);
-                      if (!hotel) return null;
-                      return (
-                        <div className="border border-gray-200 rounded-md p-4 bg-gray-50 flex gap-4 items-center">
-                          {hotel.image ? (
-                            <img
-                              src={hotel.image}
-                              alt={hotel.name}
-                              className="w-16 h-16 rounded-md object-cover border border-gray-200"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-md bg-gray-250 border border-gray-200 flex items-center justify-center text-xl">
-                              🏨
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-bold text-[#3F3F42] text-sm">{hotel.name}</div>
-                            <div className="text-xs text-gray-500 mb-1">{hotel.location}</div>
-                            <div className="flex flex-col text-[11px] font-semibold text-gray-600">
-                              <span>Private: ${hotel.privateRoomPrice}/night</span>
-                              <span>Shared: ${hotel.sharedRoomPrice}/night</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()
-                  )}
-                </div>
-
-                {/* Post-trip Hotel */}
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-[#3F3F42] mb-1">
-                      Post-trip Hotel (Optional)
-                    </label>
-                    <div
-                      onClick={() => {
-                        setSearchHotelTarget("post");
-                        setShowSearchHotelModal(true);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42] bg-white cursor-pointer flex justify-between items-center min-h-[38px] hover:border-zinc-400 transition"
-                    >
-                      <span>
-                        {selectedPostHotelId
-                          ? hotels.find((h) => h._id === selectedPostHotelId)?.name || "Select hotel"
-                          : "Select Post-trip Hotel"}
-                      </span>
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {selectedPostHotelId && (
-                    (() => {
-                      const hotel = hotels.find((h) => h._id === selectedPostHotelId);
-                      if (!hotel) return null;
-                      return (
-                        <div className="border border-gray-200 rounded-md p-4 bg-gray-50 flex gap-4 items-center">
-                          {hotel.image ? (
-                            <img
-                              src={hotel.image}
-                              alt={hotel.name}
-                              className="w-16 h-16 rounded-md object-cover border border-gray-200"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-md bg-gray-250 border border-gray-200 flex items-center justify-center text-xl">
-                              🏨
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-bold text-[#3F3F42] text-sm">{hotel.name}</div>
-                            <div className="text-xs text-gray-500 mb-1">{hotel.location}</div>
-                            <div className="flex flex-col text-[11px] font-semibold text-gray-600">
-                              <span>Private: ${hotel.privateRoomPrice}/night</span>
-                              <span>Shared: ${hotel.sharedRoomPrice}/night</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Before You Book Section */}
-          <div className="bg-white rounded-xl shadow-sm border p-8">
-            <h3 className="text-lg font-semibold text-[#3F3F42] mb-1">
-              Before You Book
-            </h3>
-            <p className="text-sm text-gray-500 mb-4">Add content for each tab. Use &quot;Normal Text&quot; for paragraphs (left column) and &quot;List Item&quot; for checklist items (right column) on the frontend.</p>
-
-            {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 mb-4">
-              {beforeYouBookTabs.map((tab, index) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setBeforeYouBookTab(index)}
-                  className={`flex-1 text-center px-3 py-2.5 text-sm font-medium transition-all cursor-pointer border-b-2 ${
-                    beforeYouBookTab === index
-                      ? "border-[#3F3F42] text-[#3F3F42]"
-                      : "border-transparent text-gray-400 hover:text-gray-600"
-                  }`}
+              {/* Hotel Accommodation Section */}
+              {formData.country && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: { xs: 2.5, md: 3.5 },
+                    borderRadius: "6px",
+                    border: "1px solid #e2e8f0",
+                    bgcolor: "#ffffff",
+                  }}
                 >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a", mb: 2 }}>
+                    Pre & Post-trip Extra Accommodation
+                  </Typography>
 
-            {/* Block Editor */}
-            <BeforeYouBookEditor
-              key={beforeYouBookTabs[beforeYouBookTab].key}
-              value={beforeYouBook[beforeYouBookTabs[beforeYouBookTab].key]}
-              onChange={(data) => {
-                const key = beforeYouBookTabs[beforeYouBookTab].key;
-                setBeforeYouBook((prev: any) => ({ ...prev, [key]: data }));
-              }}
-            />
-          </div>
-          </div>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+                    {/* Pre-trip Hotel */}
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Pre-trip Hotel (Optional)"
+                        value={selectedPreHotelId ? hotels.find((h) => h._id === selectedPreHotelId)?.name || "" : ""}
+                        placeholder="Click to select pre-trip hotel"
+                        onClick={() => {
+                          setSearchHotelTarget("pre");
+                          setShowSearchHotelModal(true);
+                        }}
+                        slotProps={{
+                          input: {
+                            readOnly: true,
+                            sx: { cursor: "pointer", bgcolor: "#ffffff", borderRadius: "6px" },
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <SearchRoundedIcon sx={{ color: "#64748b", fontSize: 20 }} />
+                              </InputAdornment>
+                            ),
+                          },
+                          inputLabel: { shrink: true },
+                        }}
+                      />
+
+                      {selectedPreHotelId &&
+                        (() => {
+                          const hotel = hotels.find((h) => h._id === selectedPreHotelId);
+                          if (!hotel) return null;
+                          return (
+                            <Paper
+                              variant="outlined"
+                              sx={{
+                                p: 2,
+                                borderRadius: "6px",
+                                borderColor: "#e2e8f0",
+                                bgcolor: "#f8fafc",
+                                display: "flex",
+                                gap: 2,
+                                alignItems: "center",
+                              }}
+                            >
+                              {hotel.image ? (
+                                <img
+                                  src={hotel.image}
+                                  alt={hotel.name}
+                                  className="w-14 h-14 rounded-md object-cover border border-slate-200"
+                                />
+                              ) : (
+                                <Box
+                                  sx={{
+                                    width: 56,
+                                    height: 56,
+                                    borderRadius: "6px",
+                                    bgcolor: "#e2e8f0",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "1.5rem",
+                                  }}
+                                >
+                                  🏨
+                                </Box>
+                              )}
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                                  {hotel.name}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: "#64748b", display: "block", mb: 0.5 }}>
+                                  {hotel.location}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: "#334155", fontWeight: 500, display: "block" }}>
+                                  Private: ${hotel.privateRoomPrice}/night • Shared: ${hotel.sharedRoomPrice}/night
+                                </Typography>
+                              </Box>
+                            </Paper>
+                          );
+                        })()}
+                    </Box>
+
+                    {/* Post-trip Hotel */}
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Post-trip Hotel (Optional)"
+                        value={selectedPostHotelId ? hotels.find((h) => h._id === selectedPostHotelId)?.name || "" : ""}
+                        placeholder="Click to select post-trip hotel"
+                        onClick={() => {
+                          setSearchHotelTarget("post");
+                          setShowSearchHotelModal(true);
+                        }}
+                        slotProps={{
+                          input: {
+                            readOnly: true,
+                            sx: { cursor: "pointer", bgcolor: "#ffffff", borderRadius: "6px" },
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <SearchRoundedIcon sx={{ color: "#64748b", fontSize: 20 }} />
+                              </InputAdornment>
+                            ),
+                          },
+                          inputLabel: { shrink: true },
+                        }}
+                      />
+
+                      {selectedPostHotelId &&
+                        (() => {
+                          const hotel = hotels.find((h) => h._id === selectedPostHotelId);
+                          if (!hotel) return null;
+                          return (
+                            <Paper
+                              variant="outlined"
+                              sx={{
+                                p: 2,
+                                borderRadius: "6px",
+                                borderColor: "#e2e8f0",
+                                bgcolor: "#f8fafc",
+                                display: "flex",
+                                gap: 2,
+                                alignItems: "center",
+                              }}
+                            >
+                              {hotel.image ? (
+                                <img
+                                  src={hotel.image}
+                                  alt={hotel.name}
+                                  className="w-14 h-14 rounded-md object-cover border border-slate-200"
+                                />
+                              ) : (
+                                <Box
+                                  sx={{
+                                    width: 56,
+                                    height: 56,
+                                    borderRadius: "6px",
+                                    bgcolor: "#e2e8f0",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "1.5rem",
+                                  }}
+                                >
+                                  🏨
+                                </Box>
+                              )}
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                                  {hotel.name}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: "#64748b", display: "block", mb: 0.5 }}>
+                                  {hotel.location}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: "#334155", fontWeight: 500, display: "block" }}>
+                                  Private: ${hotel.privateRoomPrice}/night • Shared: ${hotel.sharedRoomPrice}/night
+                                </Typography>
+                              </Box>
+                            </Paper>
+                          );
+                        })()}
+                    </Box>
+                  </Box>
+                </Paper>
+              )}
+
+              {/* Before You Book Section */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2.5, md: 3.5 },
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a", mb: 0.5 }}>
+                  Before You Book
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", mb: 2.5 }}>
+                  Add content for each tab. Use &quot;Normal Text&quot; for paragraphs and &quot;List Item&quot; for checklist items on the frontend.
+                </Typography>
+
+                {/* Tab Navigation */}
+                <Tabs
+                  value={beforeYouBookTab}
+                  onChange={(_, val) => setBeforeYouBookTab(val)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{
+                    borderBottom: "1px solid #e2e8f0",
+                    mb: 3,
+                    minHeight: 44,
+                    "& .MuiTab-root": {
+                      textTransform: "none",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      color: "#64748b",
+                      minHeight: 44,
+                      py: 1,
+                      "&.Mui-selected": { color: "#0f172a" },
+                    },
+                    "& .MuiTabs-indicator": { backgroundColor: "#0f172a", height: 2 },
+                  }}
+                >
+                  {beforeYouBookTabs.map((tab) => (
+                    <Tab key={tab.key} label={tab.label} />
+                  ))}
+                </Tabs>
+
+                {/* Block Editor */}
+                <BeforeYouBookEditor
+                  key={beforeYouBookTabs[beforeYouBookTab].key}
+                  value={beforeYouBook[beforeYouBookTabs[beforeYouBookTab].key]}
+                  onChange={(data) => {
+                    const key = beforeYouBookTabs[beforeYouBookTab].key;
+                    setBeforeYouBook((prev: any) => ({ ...prev, [key]: data }));
+                  }}
+                />
+              </Paper>
+            </Box>
           )}
 
           {/* ==================== STEP 5: DATES & PUBLISH ==================== */}
           {currentStep === 5 && (
-          <div className="space-y-6">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <h2 className="text-[32px] font-medium text-[#2C3238] leading-tight">Dates & Publish</h2>
-          </div>
-          {/* Available Dates Section */}
-          <div className="bg-white rounded-xl shadow-sm border p-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-[#3F3F42]">
-                Available Dates
-              </h3>
-              <button
-                type="button"
-                onClick={addAvailableDate}
-                className="bg-[#4C1D95] text-white px-4 py-2 rounded-md text-sm hover:bg-purple-900 transition"
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}>
+                  Dates & Publish
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b" }}>
+                  Define departure dates, seasonal discounts, and review everything before publishing.
+                </Typography>
+              </Box>
+
+              {/* Available Dates Section */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2.5, md: 3.5 },
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  bgcolor: "#ffffff",
+                }}
               >
-                + Add Date
-              </button>
-            </div>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                    Available Dates ({availableDates.length})
+                  </Typography>
+                  <Button
+                    type="button"
+                    variant="contained"
+                    size="small"
+                    startIcon={<AddRoundedIcon />}
+                    onClick={addAvailableDate}
+                    sx={{
+                      borderRadius: "6px",
+                      textTransform: "none",
+                      fontWeight: 600,
+                      bgcolor: "#0f172a",
+                      "&:hover": { bgcolor: "#1e293b" },
+                    }}
+                  >
+                    Add Date
+                  </Button>
+                </Box>
 
-            <div className="space-y-3">
-              {availableDates.map((ad, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-md p-4"
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {availableDates.map((ad, index) => (
+                    <Paper
+                      key={index}
+                      variant="outlined"
+                      sx={{
+                        p: 2.5,
+                        borderRadius: "6px",
+                        borderColor: "#e2e8f0",
+                        bgcolor: "#ffffff",
+                      }}
+                    >
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#334155" }}>
+                          Date Range #{index + 1}
+                        </Typography>
+                        <Button
+                          type="button"
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 18 }} />}
+                          onClick={() => removeAvailableDate(index)}
+                          sx={{ textTransform: "none", fontWeight: 600, fontSize: "0.8125rem" }}
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+
+                      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1.5fr" }, gap: 2 }}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Start Date"
+                          type="date"
+                          value={ad.startDate}
+                          onChange={(e) => updateAvailableDate(index, "startDate", e.target.value)}
+                          slotProps={{
+                            inputLabel: { shrink: true },
+                            htmlInput: { max: ad.endDate || undefined },
+                          }}
+                        />
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="End Date"
+                          type="date"
+                          value={ad.endDate}
+                          onChange={(e) => updateAvailableDate(index, "endDate", e.target.value)}
+                          slotProps={{
+                            inputLabel: { shrink: true },
+                            htmlInput: { min: ad.startDate || undefined },
+                          }}
+                        />
+                        <TextField
+                          fullWidth
+                          size="small"
+                          select
+                          label="Discount Promotion"
+                          value={ad.discount}
+                          onChange={(e) => updateAvailableDate(index, "discount", e.target.value)}
+                          slotProps={{ inputLabel: { shrink: true } }}
+                        >
+                          <MenuItem value="">
+                            <em>No Discount</em>
+                          </MenuItem>
+                          {discounts.filter((d) => d.isActive).map((d) => (
+                            <MenuItem key={d._id} value={d.name}>
+                              {d.name} ({d.percentage}% off)
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Box>
+                    </Paper>
+                  ))}
+
+                  {availableDates.length === 0 && (
+                    <Box sx={{ textAlign: "center", py: 4, bgcolor: "#f8fafc", borderRadius: "6px", border: "1px dashed #cbd5e1" }}>
+                      <Typography variant="body2" sx={{ color: "#64748b" }}>
+                        No available dates added yet. Click &quot;Add Date&quot; above to schedule departures.
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Paper>
+
+              {/* Submit Button in Step 5 */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 3, md: 5 },
+                  textAlign: "center",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a", mb: 1 }}>
+                  Ready to Save Changes?
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", mb: 3.5, maxWidth: 500, mx: "auto" }}>
+                  Review all steps before saving your updates to the tour. You can navigate back using the steps indicator at the top anytime.
+                </Typography>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  variant="contained"
+                  size="large"
+                  sx={{
+                    px: 6,
+                    py: 1.5,
+                    borderRadius: "6px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "1rem",
+                    bgcolor: "#0f172a",
+                    "&:hover": { bgcolor: "#1e293b" },
+                  }}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-sm font-semibold text-[#3F3F42]">
-                      Date Range #{index + 1}
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => removeAvailableDate(index)}
-                      className="text-red-500 hover:text-red-700 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                    <input
-                      type="date"
-                      value={ad.startDate}
-                      onChange={(e) =>
-                        updateAvailableDate(index, "startDate", e.target.value)
-                      }
-                      max={ad.endDate || undefined}
-                      placeholder="Start Date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    />
-                    <input
-                      type="date"
-                      value={ad.endDate}
-                      onChange={(e) =>
-                        updateAvailableDate(index, "endDate", e.target.value)
-                      }
-                      min={ad.startDate || undefined}
-                      placeholder="End Date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 text-[#3F3F42]"
-                    />
-
-                    <select
-                      value={ad.discount}
-                      onChange={(e) =>
-                        updateAvailableDate(index, "discount", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-green-300 rounded-md text-sm focus:ring-1 focus:ring-green-600 focus:border-green-600 text-[#3F3F42] bg-white"
-                    >
-                      <option value="">No Discount</option>
-                      {discounts.filter(d => d.isActive).map((d) => (
-                        <option key={d._id} value={d.name}>
-                          {d.name} ({d.percentage}% off)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {availableDates.length === 0 && (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                No available dates added yet
-              </div>
-            )}
-          </div>
-
-          {/* Submit Button in Step 5 */}
-          <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
-            <h3 className="text-lg font-semibold text-[#3F3F42] mb-2">Ready to Save Changes?</h3>
-            <p className="text-sm text-gray-500 mb-6">Review all steps before updating the tour. You can click on any step above to go back.</p>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-[#4C1D95] hover:bg-purple-900 text-white font-semibold py-3 px-10 rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 text-base"
-            >
-              {submitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Updating Tour...
-                </>
-              ) : (
-                <>Update Tour</>
-              )}
-            </button>
-          </div>
-          </div>
+                  {submitting ? (
+                    <>
+                      <CircularProgress size={20} sx={{ color: "#ffffff", mr: 1.5 }} />
+                      Updating Tour...
+                    </>
+                  ) : (
+                    "Update Tour"
+                  )}
+                </Button>
+              </Paper>
+            </Box>
           )}
 
           {/* Step Navigation Buttons */}
-          <div className="flex items-center justify-between pt-6">
-            <button
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              mt: 4,
+              borderRadius: "6px",
+              border: "1px solid #e2e8f0",
+              backgroundColor: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Button
               type="button"
               onClick={handleStepPrev}
               disabled={currentStep === 1}
-              className={`px-6 py-2.5 rounded-full font-medium transition ${currentStep === 1
-                ? "bg-transparent text-transparent cursor-default"
-                : "bg-[#A6AAB4] text-white hover:bg-gray-500"
-              }`}
+              variant="outlined"
+              sx={{
+                borderRadius: "6px",
+                textTransform: "none",
+                fontWeight: 600,
+                color: "#475569",
+                borderColor: "#cbd5e1",
+                visibility: currentStep === 1 ? "hidden" : "visible",
+                "&:hover": { borderColor: "#94a3b8", backgroundColor: "#f8fafc" },
+              }}
             >
               Previous
-            </button>
-            <div className="flex items-center gap-4">
-              <button
+            </Button>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Button
                 type="button"
                 onClick={() => router.push("/admin/tours-management")}
-                className="px-6 py-2.5 border border-gray-300 text-[#3F3F42] font-medium rounded-full hover:bg-gray-50 transition"
+                variant="outlined"
+                sx={{
+                  borderRadius: "6px",
+                  textTransform: "none",
+                  fontWeight: 500,
+                  color: "#64748b",
+                  borderColor: "#e2e8f0",
+                  "&:hover": { borderColor: "#cbd5e1", backgroundColor: "#f8fafc" },
+                }}
               >
                 Cancel
-              </button>
-              {currentStep < totalSteps && (
-                <button
+              </Button>
+              {currentStep < totalSteps ? (
+                <Button
                   type="button"
                   onClick={handleStepNext}
-                  className="px-8 py-2.5 rounded-full font-medium transition bg-[#4C1D95] text-white hover:bg-purple-900"
+                  variant="contained"
+                  sx={{
+                    borderRadius: "6px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    backgroundColor: "#0f172a",
+                    color: "#ffffff",
+                    px: 3,
+                    boxShadow: "none",
+                    "&:hover": { backgroundColor: "#1e293b", boxShadow: "none" },
+                  }}
                 >
                   Continue
-                </button>
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  variant="contained"
+                  sx={{
+                    borderRadius: "6px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    backgroundColor: "#0f172a",
+                    color: "#ffffff",
+                    px: 3,
+                    boxShadow: "none",
+                    "&:hover": { backgroundColor: "#1e293b", boxShadow: "none" },
+                  }}
+                >
+                  {submitting ? "Updating Tour..." : "Update Tour"}
+                </Button>
               )}
-            </div>
-          </div>
+            </Box>
+          </Paper>
 
           {showCityPopup && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#3F3F42]/50 backdrop-blur-sm">
@@ -2966,7 +3634,6 @@ export default function EditTourPage() {
           )}
 
         </form>
-      </div>
       <ImagePickerModal
         isOpen={imagePickerModal.isOpen}
         onClose={() => setImagePickerModal((prev) => ({ ...prev, isOpen: false }))}
@@ -3130,6 +3797,7 @@ export default function EditTourPage() {
           </div>
         </div>
       )}
-    </div>
+
+    </Box>
   );
 }

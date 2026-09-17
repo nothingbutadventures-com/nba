@@ -1,8 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import CreateHotelModal from "./CreateHotelModal";
-import { X } from "@phosphor-icons/react";
+
+// Material UI Components
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import InputAdornment from "@mui/material/InputAdornment";
+import Paper from "@mui/material/Paper";
+
+// Material UI Icons
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
+import HotelRoundedIcon from "@mui/icons-material/HotelRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 
 interface Hotel {
   _id: string;
@@ -36,8 +56,6 @@ export default function SearchHotelModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  if (!isOpen) return null;
-
   const filteredHotels = hotels.filter(
     (h) =>
       h.isActive &&
@@ -56,100 +74,197 @@ export default function SearchHotelModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-        <div className="bg-white rounded-md w-full max-w-lg overflow-hidden shadow-xl flex flex-col max-h-[85vh] border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-            <div>
-              <h3 className="text-base font-bold text-zinc-800">{title}</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Select or search from registered accommodations</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-zinc-800 transition p-1 hover:bg-gray-100 rounded-md cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+      <Dialog
+        open={isOpen}
+        onClose={onClose}
+        fullWidth
+        maxWidth="sm"
+        slotProps={{
+          paper: { sx: { borderRadius: "8px", p: 0.5 } },
+        }}
+      >
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.05rem" }}>
+              {title}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#64748b" }}>
+              Select or search from registered extra accommodations
+            </Typography>
+          </Box>
+          <IconButton size="small" onClick={onClose} sx={{ color: "#64748b" }}>
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
 
+        <DialogContent sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
           {/* Search Box */}
-          <div className="p-4 border-b border-gray-150 bg-white">
-            <input
-              type="text"
-              placeholder="Search by hotel name or city..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition text-zinc-800"
-              autoFocus
-            />
-          </div>
+          <OutlinedInput
+            size="small"
+            fullWidth
+            placeholder="Search by hotel name or city..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            startAdornment={
+              <InputAdornment position="start">
+                <SearchRoundedIcon sx={{ color: "#94a3b8", fontSize: 18 }} />
+              </InputAdornment>
+            }
+            endAdornment={
+              searchQuery ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchQuery("")} sx={{ p: 0.5 }}>
+                    <ClearRoundedIcon sx={{ fontSize: 16, color: "#94a3b8" }} />
+                  </IconButton>
+                </InputAdornment>
+              ) : null
+            }
+            sx={{
+              borderRadius: "6px",
+              fontSize: "0.8125rem",
+              bgcolor: "#f8fafc",
+              "& fieldset": { borderColor: "#cbd5e1" },
+              "&:hover fieldset": { borderColor: "#94a3b8" },
+              "&.Mui-focused fieldset": { borderColor: "#0f172a" },
+            }}
+          />
 
           {/* Hotels List */}
-          <div className="flex-1 overflow-y-auto p-4 bg-white space-y-2">
+          <Box
+            sx={{
+              maxHeight: 360,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 1.25,
+              pr: 0.5,
+            }}
+          >
             {filteredHotels.length > 0 ? (
               filteredHotels.map((hotel) => (
-                <div
+                <Paper
                   key={hotel._id}
+                  variant="outlined"
                   onClick={() => {
                     onSelect(hotel._id);
                     onClose();
                   }}
-                  className="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-55/30 transition cursor-pointer hover:border-zinc-300 group"
+                  sx={{
+                    p: 1.5,
+                    borderRadius: "6px",
+                    borderColor: "#e2e8f0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease-in-out",
+                    "&:hover": {
+                      borderColor: "#0f172a",
+                      bgcolor: "#f8fafc",
+                      transform: "translateY(-1px)",
+                    },
+                  }}
                 >
-                  <div className="flex items-center gap-3">
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                     {hotel.image ? (
-                      <img
+                      <Box
+                        component="img"
                         src={hotel.image}
                         alt={hotel.name}
-                        className="w-10 h-10 rounded-md object-cover border border-gray-100"
+                        sx={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: "6px",
+                          objectFit: "cover",
+                          border: "1px solid #e2e8f0",
+                        }}
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center text-lg border border-gray-200">
-                        🏨
-                      </div>
+                      <Box
+                        sx={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: "6px",
+                          bgcolor: "#f1f5f9",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#64748b",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <HotelRoundedIcon fontSize="small" />
+                      </Box>
                     )}
-                    <div>
-                      <div className="font-semibold text-zinc-800 text-sm group-hover:text-zinc-950 transition-colors">
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a", fontSize: "0.875rem" }}>
                         {hotel.name}
-                      </div>
-                      <div className="text-xs text-gray-500">{hotel.location}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs font-bold text-zinc-700">
-                      ${hotel.privateRoomPrice} / night
-                    </div>
-                    <div className="text-[10px] text-gray-400">Private room</div>
-                  </div>
-                </div>
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "#64748b", display: "flex", alignItems: "center", gap: 0.5 }}>
+                        <PlaceOutlinedIcon sx={{ fontSize: 13 }} />
+                        {hotel.location}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ textAlign: "right" }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.8125rem" }}>
+                      ${hotel.privateRoomPrice}
+                      <Typography component="span" variant="caption" sx={{ color: "#64748b", fontWeight: 400, ml: 0.5 }}>
+                        / night
+                      </Typography>
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.75rem", display: "block" }}>
+                      Shared: ${hotel.sharedRoomPrice}
+                    </Typography>
+                  </Box>
+                </Paper>
               ))
             ) : (
-              <div className="text-center py-8 text-sm text-gray-400 font-medium">
-                No active hotels found for this region.
-              </div>
+              <Box sx={{ py: 6, textAlign: "center" }}>
+                <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
+                  No active hotels found for this region.
+                </Typography>
+              </Box>
             )}
-          </div>
+          </Box>
+        </DialogContent>
 
-          {/* Footer with Create Action */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-            <button
-              onClick={() => {
-                onSelect("");
-                onClose();
-              }}
-              className="text-xs font-semibold text-red-650 hover:text-red-700 transition cursor-pointer"
-            >
-              Clear Selection
-            </button>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-1.5 px-3 rounded-md transition-colors text-xs cursor-pointer"
-            >
-              + Create New Hotel
-            </button>
-          </div>
-        </div>
-      </div>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, borderTop: "1px solid #f1f5f9", justifyContent: "space-between" }}>
+          <Button
+            size="small"
+            color="error"
+            onClick={() => {
+              onSelect("");
+              onClose();
+            }}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8125rem",
+            }}
+          >
+            Clear Selection
+          </Button>
+
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+            onClick={() => setShowCreateModal(true)}
+            sx={{
+              borderRadius: "6px",
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8125rem",
+              bgcolor: "#0f172a",
+              "&:hover": { bgcolor: "#1e293b" },
+            }}
+          >
+            Create New Hotel
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {showCreateModal && (
         <CreateHotelModal

@@ -17,8 +17,20 @@ pnpm-debug.log*
 
 # Env files
 .env
+.env.*
+*.env
 .env.local
 .env.*.local
+**/.env*
+
+# Python
+venv/
+.venv/
+**/venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
 
 # macOS
 .DS_Store

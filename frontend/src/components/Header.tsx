@@ -189,7 +189,12 @@ export default function Header() {
     router.push("/");
   };
 
-  if (pathname?.startsWith("/auth") || pathname?.startsWith("/admin")) {
+  if (
+    pathname?.startsWith("/auth") ||
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/affiliate/admin") ||
+    pathname?.startsWith("/leader/admin")
+  ) {
     return null;
   }
 
@@ -450,8 +455,60 @@ export default function Header() {
                             My Wishlist
                           </Link>
 
+                          <Link
+                            href="/profile/settings"
+                            className="flex items-center px-5 py-2.5 text-sm text-[#3F3F42] hover:bg-gray-50 transition-colors"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            Account Settings
+                          </Link>
+
+                          {(user.role === "affiliate" || user.role === "partner") && (
+                            <>
+                              <Link
+                                href="/dashboard/affiliate"
+                                className="flex items-center px-5 py-2.5 text-sm text-[#3F3F42] hover:bg-gray-50 transition-colors"
+                                onClick={() => setIsUserMenuOpen(false)}
+                              >
+                                <span className="font-medium">Affiliate Overview</span>
+                              </Link>
+                              <Link
+                                href="/affiliate/admin"
+                                className="flex items-center gap-2 px-5 py-2.5 text-sm text-zinc-900 font-semibold hover:bg-gray-50 transition-colors"
+                                onClick={() => setIsUserMenuOpen(false)}
+                              >
+                                <svg className="w-4 h-4 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                <span>Affiliate Portal</span>
+                              </Link>
+                            </>
+                          )}
+
+                          {(user.role === "adventure_leader" ||
+                            user.role === "guide" ||
+                            user.role === "leader") && (
+                            <Link
+                              href="/leader/admin/tours"
+                              className="flex items-center gap-2 px-5 py-2.5 text-sm text-purple-700 font-semibold hover:bg-purple-50 transition-colors"
+                              onClick={() => setIsUserMenuOpen(false)}
+                            >
+                              <span className="text-base">🧭</span>
+                              <span>Adventure Leader Portal</span>
+                            </Link>
+                          )}
+
                           {user.role === "admin" && (
                             <>
+                              <Link
+                                href="/leader/admin/tours"
+                                className="flex items-center gap-2 px-5 py-2.5 text-sm text-[#3F3F42] hover:bg-gray-50 transition-colors"
+                                onClick={() => setIsUserMenuOpen(false)}
+                              >
+                                <span className="text-base">🧭</span>
+                                <span>Leader Operations Portal</span>
+                              </Link>
+
                               <Link
                                 href="/guide"
                                 className="flex items-center px-5 py-2.5 text-sm text-purple-700 font-semibold hover:bg-purple-50 transition-colors"

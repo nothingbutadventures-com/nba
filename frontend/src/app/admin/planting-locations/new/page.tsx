@@ -1,10 +1,35 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import ImagePickerModal from "@/components/ImagePickerModal";
+
+// Material UI Components
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import CircularProgress from "@mui/material/CircularProgress";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import Tooltip from "@mui/material/Tooltip";
+import Divider from "@mui/material/Divider";
+import Skeleton from "@mui/material/Skeleton";
+
+// Material UI Icons
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import ParkOutlinedIcon from "@mui/icons-material/ParkOutlined";
+import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 
 interface Continent {
   _id: string;
@@ -39,10 +64,9 @@ function PlantingLocationForm() {
   const editId = searchParams.get("id");
   const countryQueryId = searchParams.get("countryId");
 
-  const [continents, setContinents] = useState<Continent[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
@@ -55,6 +79,17 @@ function PlantingLocationForm() {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [gallery, setGallery] = useState<string[]>([]);
 
+  // Toast Notification
+  const [toast, setToast] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "info";
+  }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
   useEffect(() => {
     fetchContinentsAndFormData();
   }, []);
@@ -62,46 +97,46 @@ function PlantingLocationForm() {
   const fetchContinentsAndFormData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch continents hierarchy
       const resContinents = await fetch(`${api.baseURL}/continents`);
       const dataContinents = await resContinents.json();
-      let allCountries: Country[] = [];
 
-      if (dataContinents.status === "success") {
-        setContinents(dataContinents.data.continents);
-        allCountries = dataContinents.data.continents.flatMap((c: Continent) => c.countries || []);
+      let allCountries: Country[] = [];
+      if (dataContinents.status === "success" && dataContinents.data.continents) {
+        dataContinents.data.continents.forEach((cont: Continent) => {
+          if (cont.countries) {
+            allCountries = [...allCountries, ...cont.countries];
+          }
+        });
         setCountries(allCountries);
       }
 
-      // If editing, fetch existing planting location
       if (editId) {
-        const res = await fetch(`${api.baseURL}/planting-locations/${editId}`);
-        const data = await res.json();
-        if (data.status === "success") {
-          const pl = data.data.plantingLocation;
-          const plCountryId = typeof pl.country === "object" ? pl.country._id : pl.country;
-          
-          setSelectedCountryId(plCountryId);
-          setSelectedDestinationName(pl.locationName);
-          setPlantSpeciesString(pl.plantSpecies ? pl.plantSpecies.join(", ") : "");
-          setDescription(pl.description || "");
-          setFaqs(pl.faqs || []);
-          setGallery(pl.gallery || []);
+        const resLocation = await fetch(`${api.baseURL}/planting-locations/${editId}`);
+        const dataLocation = await resLocation.json();
 
-          // Populate destinations for the editing country
-          const matchedCountry = allCountries.find(
-            (c) => (c._id === plCountryId || c.id === plCountryId)
-          );
-          if (matchedCountry) {
-            setDestinations(matchedCountry.destinations || []);
+        if (dataLocation.status === "success" && dataLocation.data.plantingLocation) {
+          const loc = dataLocation.data.plantingLocation;
+          const countryId = typeof loc.country === "object" ? loc.country._id : loc.country;
+          setSelectedCountryId(countryId || "");
+          setSelectedDestinationName(loc.locationName || "");
+          setPlantSpeciesString((loc.plantSpecies || []).join(", "));
+          setDescription(loc.description || "");
+          setFaqs(loc.faqs || []);
+          setGallery(loc.gallery || []);
+
+          if (countryId) {
+            const matchedCountry = allCountries.find(
+              (c) => c._id === countryId || c.id === countryId
+            );
+            if (matchedCountry) {
+              setDestinations(matchedCountry.destinations || []);
+            }
           }
         }
       } else if (countryQueryId) {
-        // Pre-select country from query parameter
         setSelectedCountryId(countryQueryId);
         const matchedCountry = allCountries.find(
-          (c) => (c._id === countryQueryId || c.id === countryQueryId)
+          (c) => c._id === countryQueryId || c.id === countryQueryId
         );
         if (matchedCountry) {
           setDestinations(matchedCountry.destinations || []);
@@ -109,6 +144,7 @@ function PlantingLocationForm() {
       }
     } catch (err) {
       console.error("Error loading form data:", err);
+      setToast({ open: true, message: "Failed to load planting location data.", severity: "error" });
     } finally {
       setLoading(false);
     }
@@ -117,8 +153,8 @@ function PlantingLocationForm() {
   const handleCountryChange = (countryId: string) => {
     setSelectedCountryId(countryId);
     setSelectedDestinationName("");
-    
-    const matchedCountry = countries.find((c) => (c._id === countryId || c.id === countryId));
+
+    const matchedCountry = countries.find((c) => c._id === countryId || c.id === countryId);
     if (matchedCountry) {
       setDestinations(matchedCountry.destinations || []);
     } else {
@@ -160,24 +196,21 @@ function PlantingLocationForm() {
     e.preventDefault();
 
     if (!selectedCountryId) {
-      alert("Please select a country");
+      setToast({ open: true, message: "Please select a country", severity: "error" });
       return;
     }
     if (!selectedDestinationName) {
-      alert("Please select a location");
+      setToast({ open: true, message: "Please select a location destination", severity: "error" });
       return;
     }
 
-    // Split species by comma and clean whitespaces
     const plantSpecies = plantSpeciesString
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
 
     const matchedDest = destinations.find((d) => d.name === selectedDestinationName);
-    const destinationId = matchedDest ? (matchedDest._id || matchedDest.id) : undefined;
-
-    // Filter invalid FAQs
+    const destinationId = matchedDest ? matchedDest._id || matchedDest.id : undefined;
     const cleanFaqs = faqs.filter((faq) => faq.question.trim() && faq.answer.trim());
 
     const payload = {
@@ -211,11 +244,15 @@ function PlantingLocationForm() {
       if (data.status === "success") {
         router.push("/admin/planting-locations");
       } else {
-        alert("Error saving planting location: " + (data.message || "Unknown error"));
+        setToast({
+          open: true,
+          message: data.message || "Error saving planting location",
+          severity: "error",
+        });
       }
     } catch (err) {
       console.error("Error saving planting location:", err);
-      alert("Failed to save planting location.");
+      setToast({ open: true, message: "Network error saving location.", severity: "error" });
     } finally {
       setSaving(false);
     }
@@ -223,294 +260,440 @@ function PlantingLocationForm() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-zinc-500 animate-pulse font-medium">Loading form...</div>
-      </div>
+      <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+          <Skeleton variant="text" width={240} height={36} />
+          <Skeleton variant="rounded" width={100} height={34} sx={{ borderRadius: "6px" }} />
+        </Box>
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: "8px" }}>
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={60} sx={{ mb: 2, borderRadius: "6px" }} />
+          ))}
+        </Paper>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin/planting-locations"
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-gray-50 shadow-sm"
-            >
-              Back
-            </Link>
-            <div>
-              <h1 className="text-lg font-bold text-zinc-800">
-                {editId ? "Edit Planting Location" : "Add Planting Location"}
-              </h1>
-            </div>
-          </div>
-          <button
-            onClick={handleSubmit}
-            disabled={saving || !selectedCountryId || !selectedDestinationName}
-            className="rounded-md bg-zinc-900 border border-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center gap-2"
+    <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc", minHeight: "100vh", pb: 10 }}>
+      {/* Header Bar */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Button
+            component={Link}
+            href="/admin/planting-locations"
+            variant="outlined"
+            size="small"
+            startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              borderRadius: "6px",
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8125rem",
+              color: "#475569",
+              borderColor: "#cbd5e1",
+              bgcolor: "#ffffff",
+              "&:hover": { borderColor: "#0f172a", color: "#0f172a", bgcolor: "#f8fafc" },
+            }}
           >
-            {saving && (
-              <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            )}
-            {editId ? "Save Changes" : "Create Location"}
-          </button>
-        </div>
-      </div>
+            Back
+          </Button>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.25rem", lineHeight: 1.2 }}>
+              {editId ? "Edit Planting Location" : "Add Planting Location"}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem", mt: 0.25 }}>
+              Configure reforestation site metadata, location pairing, and native tree species
+            </Typography>
+          </Box>
+        </Box>
 
-      {/* Form Area */}
-      <div className="p-8 max-w-3xl mx-auto">
-        <div className="bg-white rounded-md border border-gray-200 shadow-sm p-6 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <Button
+          onClick={handleSubmit}
+          disabled={saving || !selectedCountryId || !selectedDestinationName}
+          variant="contained"
+          size="small"
+          startIcon={
+            saving ? (
+              <CircularProgress size={16} sx={{ color: "#ffffff" }} />
+            ) : (
+              <SaveRoundedIcon sx={{ fontSize: 16 }} />
+            )
+          }
+          sx={{
+            bgcolor: "#0f172a",
+            color: "#ffffff",
+            fontSize: "0.8125rem",
+            fontWeight: 600,
+            borderRadius: "6px",
+            px: 2,
+            height: 34,
+            textTransform: "none",
+            "&:hover": { bgcolor: "#1e293b" },
+          }}
+        >
+          {saving ? "Saving..." : editId ? "Save Changes" : "Create Location"}
+        </Button>
+      </Box>
+
+      {/* Main Form Container */}
+      <Box sx={{ maxWidth: 860, mx: "auto", display: "flex", flexDirection: "column", gap: 3 }}>
+        {/* 1. Core Pairing Details */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 3,
+            borderRadius: "8px",
+            borderColor: "#e2e8f0",
+            bgcolor: "#ffffff",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+            <ParkOutlinedIcon sx={{ color: "#059669", fontSize: 20 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0f172a" }}>
+              Geographic Pairing
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 2.5 }} />
+
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2.5 }}>
             {/* Country Selector */}
-            <div>
-              <label className="block text-sm font-semibold text-zinc-700 mb-1">
-                Country / Destination Group <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={selectedCountryId}
-                onChange={(e) => handleCountryChange(e.target.value)}
-                disabled={!!editId}
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition shadow-sm text-zinc-800 disabled:bg-gray-150 disabled:cursor-not-allowed"
-              >
-                <option value="">-- Select Country --</option>
-                {countries.map((c) => (
-                  <option key={c._id || c.id} value={c._id || c.id}>
-                    {c.name} ({c.code})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <TextField
+              select
+              label="Country / Destination Group"
+              required
+              fullWidth
+              size="small"
+              value={selectedCountryId}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              disabled={Boolean(editId)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            >
+              <MenuItem value="">-- Select Country --</MenuItem>
+              {countries.map((c) => (
+                <MenuItem key={c._id || c.id} value={c._id || c.id}>
+                  {c.name} ({c.code})
+                </MenuItem>
+              ))}
+            </TextField>
 
             {/* Destination Selector */}
-            <div>
-              <label className="block text-sm font-semibold text-zinc-700 mb-1">
-                Planting Location / Destination <span className="text-red-500">*</span>
-              </label>
-              {selectedCountryId ? (
-                destinations.length > 0 ? (
-                  <select
-                    required
-                    value={selectedDestinationName}
-                    onChange={(e) => setSelectedDestinationName(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition shadow-sm text-zinc-800"
+            <TextField
+              select
+              label="Planting Location / Destination"
+              required
+              fullWidth
+              size="small"
+              disabled={!selectedCountryId || destinations.length === 0}
+              value={selectedDestinationName}
+              onChange={(e) => setSelectedDestinationName(e.target.value)}
+              helperText={
+                !selectedCountryId
+                  ? "Select a country first"
+                  : destinations.length === 0
+                  ? "No destinations registered for this country. Add one in Destination Management."
+                  : undefined
+              }
+              slotProps={{ inputLabel: { shrink: true } }}
+            >
+              <MenuItem value="">-- Select Location Reference --</MenuItem>
+              {destinations.map((d) => (
+                <MenuItem key={d._id || d.id} value={d.name}>
+                  {d.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+        </Paper>
+
+        {/* 2. Flora & Species Metadata */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 3,
+            borderRadius: "8px",
+            borderColor: "#e2e8f0",
+            bgcolor: "#ffffff",
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}>
+            Reforestation & Botanical Specifications
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#64748b", display: "block", mb: 2 }}>
+            Specify the native species of trees and flora planted in this sanctuary
+          </Typography>
+          <Divider sx={{ mb: 2.5 }} />
+
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            <TextField
+              label="Plant / Tree Species"
+              required
+              fullWidth
+              size="small"
+              placeholder="e.g. Acacia, Mahogany, Cedar, Baobab"
+              value={plantSpeciesString}
+              onChange={(e) => setPlantSpeciesString(e.target.value)}
+              helperText="Enter species names separated by commas"
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+
+            <TextField
+              label="Planting Project Description"
+              multiline
+              rows={4}
+              fullWidth
+              size="small"
+              placeholder="Tell users about the reforestation initiative, conservation impact, soil conditions, and ecological benefits..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Box>
+        </Paper>
+
+        {/* 3. Media & Sanctuary Gallery */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 3,
+            borderRadius: "8px",
+            borderColor: "#e2e8f0",
+            bgcolor: "#ffffff",
+          }}
+        >
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <ImageOutlinedIcon sx={{ color: "#0284c7", fontSize: 20 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                Gallery & Visuals
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<CloudUploadOutlinedIcon sx={{ fontSize: 16 }} />}
+              onClick={() => setIsImagePickerOpen(true)}
+              sx={{
+                borderRadius: "6px",
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.75rem",
+                color: "#0f172a",
+                borderColor: "#cbd5e1",
+              }}
+            >
+              Select from Media
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 2.5 }} />
+
+          {gallery.length > 0 ? (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" },
+                gap: 2,
+              }}
+            >
+              {gallery.map((url, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    position: "relative",
+                    borderRadius: "6px",
+                    overflow: "hidden",
+                    height: 110,
+                    border: "1px solid #e2e8f0",
+                    "&:hover .remove-btn": { opacity: 1 },
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={url}
+                    alt={`Gallery ${index + 1}`}
+                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                  <IconButton
+                    size="small"
+                    className="remove-btn"
+                    onClick={() => handleRemoveGalleryImage(index)}
+                    sx={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      bgcolor: "rgba(239, 68, 68, 0.9)",
+                      color: "#ffffff",
+                      opacity: 0,
+                      transition: "opacity 0.2s",
+                      p: 0.5,
+                      "&:hover": { bgcolor: "#dc2626" },
+                    }}
                   >
-                    <option value="">-- Select Location Reference --</option>
-                    {destinations.map((d) => (
-                      <option key={d._id || d.id} value={d.name}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs font-medium">
-                    No destinations have been added to this country yet. Please add a destination to this country in{" "}
-                    <Link href="/admin/location" className="underline font-bold hover:text-amber-950">
-                      Destination Management
-                    </Link>{" "}
-                    first.
-                  </div>
-                )
-              ) : (
-                <div className="p-3 bg-gray-50 border border-gray-250 rounded-md text-gray-400 text-xs font-semibold">
-                  Please select a Country first.
-                </div>
-              )}
-            </div>
+                    <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Paper
+              variant="outlined"
+              sx={{
+                borderStyle: "dashed",
+                borderColor: "#cbd5e1",
+                p: 4,
+                textAlign: "center",
+                borderRadius: "6px",
+                bgcolor: "#f8fafc",
+              }}
+            >
+              <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem" }}>
+                No sanctuary photos added to the gallery yet. Click &quot;Select from Media&quot; to pick images.
+              </Typography>
+            </Paper>
+          )}
+        </Paper>
 
-            {/* Plant Species Input */}
-            <div>
-              <label className="block text-sm font-semibold text-zinc-700 mb-1">
-                Plant / Tree Species <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={plantSpeciesString}
-                onChange={(e) => setPlantSpeciesString(e.target.value)}
-                placeholder="e.g. Acacia, Mahogany, Oak"
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition shadow-sm placeholder:text-gray-400 text-zinc-800"
-              />
-              <p className="text-[10px] text-gray-400 mt-1">
-                Enter multiple species separated by commas.
-              </p>
-            </div>
+        {/* 4. Frequently Asked Questions (FAQs) */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 3,
+            borderRadius: "8px",
+            borderColor: "#e2e8f0",
+            bgcolor: "#ffffff",
+          }}
+        >
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <HelpOutlineRoundedIcon sx={{ color: "#8b5cf6", fontSize: 20 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                Frequently Asked Questions
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+              onClick={handleAddFaq}
+              sx={{
+                borderRadius: "6px",
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.75rem",
+                color: "#0f172a",
+                borderColor: "#cbd5e1",
+              }}
+            >
+              Add FAQ
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 2.5 }} />
 
-            {/* Description Input */}
-            <div>
-              <label className="block text-sm font-semibold text-zinc-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Tell users about the planting project in this region, soil types, reforestation status..."
-                rows={4}
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition shadow-sm placeholder:text-gray-400 text-zinc-800 resize-y"
-              />
-            </div>
-
-            {/* Gallery Section */}
-            <div className="pt-5 border-t border-gray-200">
-              <div className="flex justify-between items-center mb-3">
-                <label className="block text-sm font-bold text-zinc-800">
-                  Gallery Images
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsImagePickerOpen(true)}
-                  className="px-3 py-1.5 bg-white border border-gray-300 text-zinc-700 hover:bg-gray-50 rounded-md text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+          {faqs.length > 0 ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {faqs.map((faq, index) => (
+                <Paper
+                  key={index}
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    borderRadius: "6px",
+                    bgcolor: "#f8fafc",
+                    borderColor: "#e2e8f0",
+                  }}
                 >
-                  Select from Media
-                </button>
-              </div>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
+                      FAQ #{index + 1}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveFaq(index)}
+                      sx={{ p: 0.5 }}
+                    >
+                      <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Box>
 
-              {gallery.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-md border border-gray-200">
-                  {gallery.map((url, index) => (
-                    <div key={index} className="relative group rounded-md overflow-hidden h-24 bg-white border border-gray-200 shadow-sm">
-                      <img
-                        src={url}
-                        alt={`Gallery preview ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGalleryImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md cursor-pointer"
-                        title="Remove Image"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-md border-2 border-dashed border-gray-200 p-8 text-center text-gray-400 text-sm bg-gray-50/30">
-                  No images selected for the gallery yet.
-                </div>
-              )}
-            </div>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                    <TextField
+                      label="Question"
+                      size="small"
+                      fullWidth
+                      placeholder="e.g. When are the trees planted?"
+                      value={faq.question}
+                      onChange={(e) => handleFaqChange(index, "question", e.target.value)}
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    />
+                    <TextField
+                      label="Answer"
+                      multiline
+                      rows={2}
+                      size="small"
+                      fullWidth
+                      placeholder="Detailed explanation..."
+                      value={faq.answer}
+                      onChange={(e) => handleFaqChange(index, "answer", e.target.value)}
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    />
+                  </Box>
+                </Paper>
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.8125rem", fontStyle: "italic" }}>
+              No FAQs added yet. Click &quot;Add FAQ&quot; to provide extra information to travelers.
+            </Typography>
+          )}
+        </Paper>
+      </Box>
 
-            {/* FAQs Section */}
-            <div className="pt-5 border-t border-gray-200">
-              <div className="flex justify-between items-center mb-3">
-                <label className="block text-sm font-bold text-zinc-800">
-                  Frequently Asked Questions (FAQs)
-                </label>
-                <button
-                  type="button"
-                  onClick={handleAddFaq}
-                  className="px-3 py-1.5 bg-white border border-gray-300 text-zinc-700 hover:bg-gray-50 rounded-md text-xs font-semibold shadow-sm transition-colors cursor-pointer"
-                >
-                  + Add FAQ
-                </button>
-              </div>
-
-              {faqs.length > 0 ? (
-                <div className="space-y-4">
-                  {faqs.map((faq, index) => (
-                    <div key={index} className="bg-gray-50 p-4 rounded-md border border-gray-200 space-y-3 relative shadow-inner">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFaq(index)}
-                        className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                        title="Remove FAQ"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-
-                      <div className="pr-8">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                          Question #{index + 1}
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={faq.question}
-                          onChange={(e) => handleFaqChange(index, "question", e.target.value)}
-                          placeholder="e.g. When are the trees planted?"
-                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition shadow-sm text-zinc-800"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                          Answer
-                        </label>
-                        <textarea
-                          required
-                          value={faq.answer}
-                          onChange={(e) => handleFaqChange(index, "answer", e.target.value)}
-                          placeholder="Provide the answer..."
-                          rows={2}
-                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition shadow-sm text-zinc-800 resize-y"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-md border-2 border-dashed border-gray-200 p-8 text-center text-gray-400 text-sm bg-gray-50/30">
-                  No FAQs added to this planting location yet.
-                </div>
-              )}
-            </div>
-
-            {/* Form Actions */}
-            <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
-              <Link
-                href="/admin/planting-locations"
-                className="px-4 py-2 border border-gray-300 text-zinc-700 rounded-md hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
-              >
-                Cancel
-              </Link>
-              <button
-                type="submit"
-                disabled={saving || !selectedCountryId || !selectedDestinationName}
-                className="px-5 py-2 bg-zinc-900 border border-zinc-900 text-white rounded-md hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
-              >
-                {saving && (
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                )}
-                {editId ? "Save Changes" : "Create Planting Location"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
+      {/* Image Picker Modal */}
       <ImagePickerModal
         isOpen={isImagePickerOpen}
         onClose={() => setIsImagePickerOpen(false)}
         onSelect={handleImageSelect}
         multiple={true}
-        folder="tour-images"
+        folder="planting-locations"
       />
-    </div>
+
+      {/* Toast Notification */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: "100%", borderRadius: "6px" }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 
-export default function NewPlantingLocationPage() {
+export default function Page() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-zinc-500 animate-pulse font-medium">Loading form...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <Box sx={{ p: 4, textAlign: "center" }}>
+          <CircularProgress size={24} sx={{ color: "#0f172a" }} />
+        </Box>
+      }
+    >
       <PlantingLocationForm />
     </Suspense>
   );

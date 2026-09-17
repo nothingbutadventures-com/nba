@@ -1,8 +1,31 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import ImagePickerModal from "./ImagePickerModal";
-import { X } from "@phosphor-icons/react";
+
+// Material UI Components
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import CircularProgress from "@mui/material/CircularProgress";
+import InputAdornment from "@mui/material/InputAdornment";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import Paper from "@mui/material/Paper";
+
+// Material UI Icons
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import HotelRoundedIcon from "@mui/icons-material/HotelRounded";
 
 interface CreateHotelModalProps {
   isOpen: boolean;
@@ -21,7 +44,6 @@ export default function CreateHotelModal({
   destinationId,
   hotelData,
 }: CreateHotelModalProps) {
-  const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedCountryId, setSelectedCountryId] = useState(destinationId || "");
   const [countries, setCountries] = useState<any[]>([]);
@@ -37,9 +59,11 @@ export default function CreateHotelModal({
     image: "",
   });
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: "error" | "success" }>({
+    open: false,
+    message: "",
+    severity: "error",
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -105,27 +129,26 @@ export default function CreateHotelModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCountryId) {
-      alert("Please select a country destination");
+      setToast({ open: true, message: "Please select a destination country", severity: "error" });
       return;
     }
+
+    const parsedPrivatePrice = Number(formData.privateRoomPrice);
+    const parsedSharedPrice = Number(formData.sharedRoomPrice);
+
+    if (Number.isNaN(parsedPrivatePrice) || parsedPrivatePrice < 0) {
+      setToast({ open: true, message: "Please enter a valid private room price", severity: "error" });
+      return;
+    }
+    if (Number.isNaN(parsedSharedPrice) || parsedSharedPrice < 0) {
+      setToast({ open: true, message: "Please enter a valid shared room price", severity: "error" });
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       const token = localStorage.getItem("token");
-
-      const parsedPrivatePrice = Number(formData.privateRoomPrice);
-      const parsedSharedPrice = Number(formData.sharedRoomPrice);
-
-      if (Number.isNaN(parsedPrivatePrice) || parsedPrivatePrice < 0) {
-        alert("Please enter a valid private room price");
-        setSubmitting(false);
-        return;
-      }
-      if (Number.isNaN(parsedSharedPrice) || parsedSharedPrice < 0) {
-        alert("Please enter a valid shared room price");
-        setSubmitting(false);
-        return;
-      }
 
       const payload: any = {
         ...formData,
@@ -155,349 +178,316 @@ export default function CreateHotelModal({
         onClose();
       } else {
         const data = await response.json();
-        alert(`Error: ${data.message}`);
+        setToast({ open: true, message: data.message || "Failed to save hotel", severity: "error" });
       }
     } catch (error) {
       console.error("Error submitting hotel:", error);
-      alert("Failed to submit hotel");
+      setToast({ open: true, message: "Network error submitting hotel", severity: "error" });
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (!isOpen || !mounted) return null;
-
-  return createPortal(
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 10000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: "white",
-          borderRadius: "12px",
-          width: "100%",
-          maxWidth: "600px",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          overflow: "hidden",
-          margin: "16px",
+  return (
+    <>
+      <Dialog
+        open={isOpen}
+        onClose={onClose}
+        fullWidth
+        maxWidth="sm"
+        slotProps={{
+          paper: { sx: { borderRadius: "8px", p: 0.5 } },
         }}
-        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid #e5e7eb",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-            backgroundColor: "white",
-          }}
-        >
-          <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#111827", margin: 0 }}>
-            {hotelData ? "Edit Hotel" : "Create New Hotel"}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: "4px" }}
-          >
-            <X size={20} weight="bold" />
-          </button>
-        </div>
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.05rem" }}>
+              {hotelData ? "Edit Hotel" : "Create New Hotel"}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#64748b" }}>
+              Configure extra accommodation details and night rates
+            </Typography>
+          </Box>
+          <IconButton size="small" onClick={onClose} sx={{ color: "#64748b" }}>
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
 
-        {/* Form Content - scrollable */}
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "20px",
-              minHeight: 0,
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Name */}
-              <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "4px" }}>
-                  Hotel Name <span style={{ color: "#ef4444" }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Hotel Grandeur"
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    color: "#111827",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
+        <form onSubmit={handleSubmit}>
+          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1.5 }}>
+            {/* Hotel Name */}
+            <TextField
+              label="Hotel Name"
+              required
+              fullWidth
+              size="small"
+              placeholder="e.g. Grand Palace Hotel"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
 
-              {/* Country Selection (Only if destinationId is not predefined) */}
-              {!destinationId && (
-                <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "4px" }}>
-                    Destination Country <span style={{ color: "#ef4444" }}>*</span>
-                  </label>
-                  <select
-                    required
-                    value={selectedCountryId}
-                    onChange={(e) => {
-                      setSelectedCountryId(e.target.value);
-                      setFormData((prev) => ({ ...prev, location: "" }));
-                    }}
-                    style={{
+            {/* Country Selection (Only if destinationId is not predefined) */}
+            {!destinationId && (
+              <TextField
+                select
+                label="Destination Country"
+                required
+                fullWidth
+                size="small"
+                value={selectedCountryId}
+                onChange={(e) => {
+                  setSelectedCountryId(e.target.value);
+                  setFormData((prev) => ({ ...prev, location: "" }));
+                }}
+                slotProps={{ inputLabel: { shrink: true } }}
+              >
+                <MenuItem value="">Select Country</MenuItem>
+                {countries.map((c) => (
+                  <MenuItem key={c._id} value={c._id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+
+            {/* Location (City / Stopover) */}
+            <TextField
+              select
+              label="Location (City / Destination)"
+              required
+              fullWidth
+              size="small"
+              disabled={loadingDestinations || !selectedCountryId}
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              helperText={
+                loadingDestinations
+                  ? "Loading destinations..."
+                  : !selectedCountryId
+                  ? "Please select a country first"
+                  : selectedCountry?.destinations?.length === 0
+                  ? `No cities/destinations registered for ${selectedCountry?.name || "this country"}.`
+                  : undefined
+              }
+              slotProps={{ inputLabel: { shrink: true } }}
+            >
+              <MenuItem value="">Select Location</MenuItem>
+              {selectedCountry?.destinations?.map((d: any) => (
+                <MenuItem key={d._id || d.name} value={d.name}>
+                  {d.name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            {/* Pricing (Private & Shared Room) */}
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+              <TextField
+                label="Private Room Price (USD)"
+                type="number"
+                required
+                size="small"
+                placeholder="120"
+                value={formData.privateRoomPrice}
+                onChange={(e) => setFormData({ ...formData, privateRoomPrice: e.target.value })}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                  input: {
+                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    endAdornment: <InputAdornment position="end">/night</InputAdornment>,
+                  },
+                }}
+              />
+              <TextField
+                label="Shared Room Price (USD)"
+                type="number"
+                required
+                size="small"
+                placeholder="60"
+                value={formData.sharedRoomPrice}
+                onChange={(e) => setFormData({ ...formData, sharedRoomPrice: e.target.value })}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                  input: {
+                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    endAdornment: <InputAdornment position="end">/night</InputAdornment>,
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Hotel Image */}
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155", mb: 1, fontSize: "0.8125rem" }}>
+                Hotel Cover Photo
+              </Typography>
+              <Paper
+                variant="outlined"
+                sx={{
+                  borderStyle: "dashed",
+                  borderColor: formData.image ? "#cbd5e1" : "#cbd5e1",
+                  borderRadius: "8px",
+                  p: 2,
+                  bgcolor: "#f8fafc",
+                  textAlign: "center",
+                  position: "relative",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 120,
+                  overflow: "hidden",
+                }}
+              >
+                {formData.image ? (
+                  <Box sx={{ width: "100%", display: "flex", alignItems: "center", gap: 2 }}>
+                    <Box
+                      component="img"
+                      src={formData.image}
+                      alt="Hotel preview"
+                      sx={{
+                        width: 100,
+                        height: 70,
+                        borderRadius: "6px",
+                        objectFit: "cover",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    />
+                    <Box sx={{ flex: 1, textAlign: "left" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a", fontSize: "0.8125rem" }}>
+                        Selected Image
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#64748b",
+                          display: "block",
+                          maxWidth: 240,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {formData.image}
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => setShowImagePicker(true)}
+                          sx={{
+                            borderRadius: "6px",
+                            textTransform: "none",
+                            fontSize: "0.75rem",
+                            py: 0.25,
+                            color: "#0f172a",
+                            borderColor: "#cbd5e1",
+                          }}
+                        >
+                          Change
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => setFormData({ ...formData, image: "" })}
+                          sx={{ textTransform: "none", fontSize: "0.75rem", py: 0.25 }}
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Box
+                    onClick={() => setShowImagePicker(true)}
+                    sx={{
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 0.75,
+                      py: 1,
                       width: "100%",
-                      padding: "8px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                      fontSize: "14px",
-                      color: "#111827",
-                      outline: "none",
-                      boxSizing: "border-box",
-                      backgroundColor: "white",
                     }}
                   >
-                    <option value="">Select country</option>
-                    {countries.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Location Selector (Fetched from Country Destinations in DB) */}
-              <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "4px" }}>
-                  Location (City/Destination) <span style={{ color: "#ef4444" }}>*</span>
-                </label>
-                {loadingDestinations ? (
-                  <div style={{ fontSize: "13px", color: "#6b7280", padding: "6px 0" }}>Loading destinations...</div>
-                ) : selectedCountry ? (
-                  selectedCountry.destinations && selectedCountry.destinations.length > 0 ? (
-                    <select
-                      required
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "8px 12px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        color: "#111827",
-                        outline: "none",
-                        boxSizing: "border-box",
-                        backgroundColor: "white",
-                      }}
-                    >
-                      <option value="">Select location</option>
-                      {selectedCountry.destinations.map((d: any) => (
-                        <option key={d._id || d.name} value={d.name}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div style={{ fontSize: "13px", color: "#ef4444", padding: "6px 0" }}>
-                      No locations found for {selectedCountry.name}. Please add one in Location settings first.
-                    </div>
-                  )
-                ) : (
-                  <div style={{ fontSize: "13px", color: "#6b7280", padding: "6px 0" }}>
-                    Please select a country first.
-                  </div>
+                    <CloudUploadOutlinedIcon sx={{ fontSize: 32, color: "#94a3b8" }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a", fontSize: "0.8125rem" }}>
+                      Select or upload hotel image
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#64748b" }}>
+                      Supports PNG, JPG, WebP from media library
+                    </Typography>
+                  </Box>
                 )}
-              </div>
+              </Paper>
+            </Box>
+          </DialogContent>
 
-              {/* Pricing section */}
-              <div style={{ display: "flex", gap: "12px" }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "4px" }}>
-                    Private Room Price (USD) <span style={{ color: "#ef4444" }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.privateRoomPrice}
-                    onChange={(e) => setFormData({ ...formData, privateRoomPrice: e.target.value })}
-                    placeholder="e.g. 130"
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                      fontSize: "14px",
-                      color: "#111827",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "4px" }}>
-                    Shared Room Price (USD) <span style={{ color: "#ef4444" }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.sharedRoomPrice}
-                    onChange={(e) => setFormData({ ...formData, sharedRoomPrice: e.target.value })}
-                    placeholder="e.g. 65"
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                      fontSize: "14px",
-                      color: "#111827",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Cover Image */}
-              <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "4px" }}>
-                  Hotel Image
-                </label>
-                <div
-                  onClick={() => setShowImagePicker(true)}
-                  style={{
-                    border: "2px dashed #d1d5db",
-                    borderRadius: "8px",
-                    padding: "16px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    position: "relative",
-                    overflow: "hidden",
-                    height: "100px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {formData.image ? (
-                    <>
-                      <img
-                        src={formData.image}
-                        alt="Preview"
-                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                      <div
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          backgroundColor: "rgba(0,0,0,0.4)",
-                          color: "white",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          opacity: 0,
-                          transition: "opacity 0.2s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
-                      >
-                        Change Image
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ color: "#9ca3af" }}>
-                      <span style={{ fontSize: "14px", display: "block" }}>Click to select/upload image</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div
-            style={{
-              padding: "16px 20px",
-              borderTop: "1px solid #e5e7eb",
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "12px",
-              backgroundColor: "#f9fafb",
-              flexShrink: 0,
-            }}
-          >
-            <button
+          <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, borderTop: "1px solid #f1f5f9" }}>
+            <Button
               type="button"
+              variant="outlined"
+              size="small"
               onClick={onClose}
-              style={{
-                padding: "8px 16px",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#374151",
-                backgroundColor: "white",
-                border: "1px solid #d1d5db",
+              sx={{
                 borderRadius: "6px",
-                cursor: "pointer",
+                textTransform: "none",
+                fontWeight: 600,
+                color: "#64748b",
+                borderColor: "#cbd5e1",
               }}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={submitting}
-              style={{
-                padding: "8px 16px",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "white",
-                backgroundColor: submitting ? "#d1d5db" : "#111827",
-                border: "none",
+              variant="contained"
+              size="small"
+              sx={{
                 borderRadius: "6px",
-                cursor: submitting ? "not-allowed" : "pointer",
+                textTransform: "none",
+                fontWeight: 600,
+                bgcolor: "#0f172a",
+                "&:hover": { bgcolor: "#1e293b" },
               }}
             >
               {submitting ? "Saving..." : hotelData ? "Save Changes" : "Create Hotel"}
-            </button>
-          </div>
+            </Button>
+          </DialogActions>
         </form>
-      </div>
+      </Dialog>
+
+      {/* Image Picker Modal */}
       <ImagePickerModal
         isOpen={showImagePicker}
         onClose={() => setShowImagePicker(false)}
-        onSelect={(urls) => {
+        onSelect={(urls: string[]) => {
           if (urls.length > 0) {
             setFormData((prev) => ({ ...prev, image: urls[0] }));
           }
+          setShowImagePicker(false);
         }}
         multiple={false}
+        folder="hotel-images"
       />
-    </div>,
-    document.body
+
+      {/* Toast Alert */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: "100%", borderRadius: "6px" }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }

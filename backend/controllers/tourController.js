@@ -13,7 +13,9 @@ const getAllTours = catchAsync(async (req, res, next) => {
     .paginate();
 
   // Execute query
-  const tours = await features.query.populate("country", "name slug");
+  const tours = await features.query
+    .populate("country", "name slug")
+    .populate("startDates.adventureLeader", "name email avatar phone nationality role");
 
   // Get total count for pagination
   const total = await Tour.countDocuments({ isActive: true });
@@ -65,7 +67,14 @@ const getTour = catchAsync(async (req, res, next) => {
     .populate("plantingLocation")
     .populate("hotel")
     .populate("preTripHotel")
-    .populate("postTripHotel");
+    .populate("postTripHotel")
+    .populate({
+      path: "affiliates",
+      populate: {
+        path: "user",
+        select: "name email avatar",
+      },
+    });
 
   if (!tour) {
     return next(new AppError("No tour found with that ID", 404));
@@ -317,6 +326,152 @@ const deleteTour = catchAsync(async (req, res, next) => {
   });
 });
 
+const getMyAssignedTours = catchAsync(async (req, res, next) => {
+  const Affiliate = require("../models/Affiliate");
+
+  let queryFilter = {};
+
+  if (req.user.role === "admin") {
+    if (req.query.leaderId) {
+      queryFilter = {
+        $or: [
+          { adventureLeaders: req.query.leaderId },
+          { "startDates.adventureLeader": req.query.leaderId },
+        ],
+      };
+    } else if (req.query.affiliateId) {
+      queryFilter = { affiliates: req.query.affiliateId };
+    }
+  } else {
+    // For Adventure Leaders / Guides / Affiliates:
+    const affiliate = await Affiliate.findOne({ user: req.user.id });
+    const orConditions = [
+      { adventureLeaders: req.user.id },
+      { "startDates.adventureLeader": req.user.id },
+    ];
+    if (affiliate) {
+      orConditions.push({ affiliates: affiliate._id });
+    }
+    queryFilter = { $or: orConditions };
+  }
+
+  const features = new APIFeatures(Tour.find(queryFilter), req.query)
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const tours = await features.query
+    .populate("country", "name slug")
+    .populate("travelStyle", "name slug")
+    .populate("adventureLeaders", "name email avatar phone nationality role")
+    .populate("startDates.adventureLeader", "name email avatar phone nationality role")
+    .populate({
+      path: "affiliates",
+      populate: { path: "user", select: "name email avatar" },
+    });
+
+  const total = await Tour.countDocuments(queryFilter);
+
+  let resultTours = tours;
+  if (req.user.role !== "admin") {
+    resultTours = tours.map((t) => {
+      const tObj = t.toObject ? t.toObject() : t;
+      tObj.startDates = (tObj.startDates || []).filter((sd) => {
+        if (!sd.adventureLeader) return false;
+        const leadId = sd.adventureLeader._id
+          ? sd.adventureLeader._id.toString()
+          : sd.adventureLeader.toString();
+        return leadId === req.user.id.toString();
+      });
+      return tObj;
+    });
+  }
+
+  res.status(200).json({
+    status: "success",
+    results: resultTours.length,
+    total,
+    data: {
+      tours: resultTours,
+    },
+  });
+});
+
+const assignDepartureLeader = catchAsync(async (req, res, next) => {
+  const { tourId, departureId } = req.params;
+  const { leaderId } = req.body;
+
+  const tour = await Tour.findById(tourId);
+  if (!tour) {
+    return next(new AppError("Tour not found", 404));
+  }
+
+  // Find departure by _id or by matching startDate string
+  const departure = (tour.startDates || []).find((d) => {
+    if (d._id && d._id.toString() === departureId) return true;
+    if (d.startDate) {
+      const dStr = new Date(d.startDate).toISOString().split("T")[0];
+      const matchStr = departureId.includes("T") ? departureId.split("T")[0] : departureId;
+      return dStr === matchStr;
+    }
+    return false;
+  });
+
+  if (!departure) {
+    return next(new AppError("Departure date not found in this tour", 404));
+  }
+
+  departure.adventureLeader = leaderId || null;
+
+  // If assigning a leader, also ensure they are in tour.adventureLeaders for permissions
+  if (leaderId) {
+    const leaderExists = (tour.adventureLeaders || []).some(
+      (id) => id.toString() === leaderId.toString()
+    );
+    if (!leaderExists) {
+      tour.adventureLeaders.push(leaderId);
+    }
+  }
+
+  await tour.save();
+
+  const updatedTour = await Tour.findById(tourId)
+    .populate("country", "name slug")
+    .populate("travelStyle", "name slug")
+    .populate("startDates.adventureLeader", "name email avatar phone nationality role")
+    .populate("adventureLeaders", "name email avatar phone nationality role");
+
+  res.status(200).json({
+    status: "success",
+    message: leaderId
+      ? "Adventure leader assigned to departure"
+      : "Adventure leader removed from departure",
+    data: {
+      tour: updatedTour,
+      departure: updatedTour.startDates.find((d) => d._id.toString() === departure._id.toString()),
+    },
+  });
+});
+
+const getAdventureLeaders = catchAsync(async (req, res, next) => {
+  const User = require("../models/User");
+  const leaders = await User.find({
+    role: { $in: ["adventure_leader", "guide", "leader", "partner"] },
+  })
+    .select("name email avatar phone nationality role")
+    .sort("name")
+    .lean();
+
+  res.status(200).json({
+    status: "success",
+    results: leaders.length,
+    data: {
+      leaders,
+    },
+  });
+});
+
 module.exports = {
   getAllTours,
   getTour,
@@ -329,4 +484,7 @@ module.exports = {
   createTour,
   updateTour,
   deleteTour,
+  getMyAssignedTours,
+  assignDepartureLeader,
+  getAdventureLeaders,
 };

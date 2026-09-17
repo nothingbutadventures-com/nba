@@ -14,7 +14,15 @@ import {
     Loader2,
     Eye,
     Shield,
+    ShieldCheck,
     AlertCircle,
+    CalendarDays,
+    Users,
+    Activity,
+    FileBadge,
+    FileCheck,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 
 interface Traveler {
@@ -67,11 +75,11 @@ interface BookingData {
 
 type DocType = "passport" | "visa" | "medicalCertificate" | "insurance";
 
-const DOC_TYPES: { key: DocType; label: string; icon: string }[] = [
-    { key: "passport", label: "Passport", icon: "🛂" },
-    { key: "visa", label: "Visa", icon: "📋" },
-    { key: "medicalCertificate", label: "Medical Certificate / Vaccination", icon: "💉" },
-    { key: "insurance", label: "Insurance Details", icon: "🛡️" },
+const DOC_TYPES: { key: DocType; label: string; icon: any }[] = [
+    { key: "passport", label: "Passport", icon: FileBadge },
+    { key: "visa", label: "Visa", icon: FileCheck },
+    { key: "medicalCertificate", label: "Medical Certificate / Vaccination", icon: Activity },
+    { key: "insurance", label: "Insurance Details", icon: ShieldCheck },
 ];
 
 export default function BookingDocumentsPage() {
@@ -146,25 +154,21 @@ export default function BookingDocumentsPage() {
     };
 
     const handleFileSelect = async (travelerIdx: number, docType: DocType, file: File) => {
-        // Prevent modifying if verified by admin
         if (localDocs[travelerIdx]?.[docType]?.verified) {
             alert("This document has already been verified by the administrator and cannot be modified.");
             return;
         }
 
-        // Validate PDF only
         if (file.type !== "application/pdf") {
             alert("Only PDF files are accepted. Please select a PDF file.");
             return;
         }
 
-        // Validate file size (10MB max)
         if (file.size > 10 * 1024 * 1024) {
             alert("File size must be less than 10MB.");
             return;
         }
 
-        // Update local state to show uploading
         setLocalDocs(prev => ({
             ...prev,
             [travelerIdx]: {
@@ -290,10 +294,11 @@ export default function BookingDocumentsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 border-4 border-[#6A38C2] border-t-transparent rounded-full animate-spin"></div>
-                    <p className="mt-4 text-gray-500 font-medium animate-pulse text-sm">Loading booking details...</p>
+            <div className="min-h-screen bg-white">
+                <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-6 md:px-8 xl:px-[35px] py-12 animate-pulse space-y-6">
+                    <div className="h-8 w-64 bg-gray-100 rounded-2xl"></div>
+                    <div className="h-44 bg-[#F8F9FA] rounded-3xl"></div>
+                    <div className="h-96 bg-[#F8F9FA] rounded-3xl"></div>
                 </div>
             </div>
         );
@@ -301,13 +306,16 @@ export default function BookingDocumentsPage() {
 
     if (error || !booking) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center max-w-md">
-                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                    <h2 className="text-lg font-semibold text-[#3F3F42] mb-2">Unable to Load Booking</h2>
-                    <p className="text-gray-500 mb-6">{error || "Booking not found"}</p>
-                    <Link href="/profile?tab=bookings" className="inline-block bg-[#6A38C2] hover:bg-purple-800 text-white font-medium py-2.5 px-6 rounded-lg transition">
-                        Back to My Bookings
+            <div className="min-h-screen bg-white flex items-center justify-center p-4">
+                <div className="bg-[#F8F9FA] rounded-3xl shadow-sm p-10 text-center max-w-md w-full">
+                    <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold text-[#1A1A1A] mb-2">Unable to Load Booking</h2>
+                    <p className="text-gray-500 text-xs leading-relaxed mb-6">{error || "Booking not found"}</p>
+                    <Link
+                        href="/profile"
+                        className="inline-block bg-[#432360] hover:bg-[#321a48] text-white font-bold py-3 px-8 rounded-full text-xs transition shadow-md"
+                    >
+                        Back to My Profile
                     </Link>
                 </div>
             </div>
@@ -317,46 +325,91 @@ export default function BookingDocumentsPage() {
     const isAlreadySubmitted = booking.documentsSubmitted;
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="min-h-screen bg-white font-sans text-[#1A1A1A] pb-16">
+            {/* SUB NAVIGATION BAR */}
+            <div className="bg-white">
+                <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-6 md:px-8 xl:px-[35px] pt-4 pb-1">
+                    <nav className="flex items-center gap-6 md:gap-8 overflow-x-auto py-2 text-[13px] md:text-sm font-medium text-gray-500 scrollbar-hide">
+                        <Link href="/trips" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Tours
+                        </Link>
+                        <Link href="/tree-planting" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Trees for Days
+                        </Link>
+                        <Link href="/profile" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Profile
+                        </Link>
+                        <Link href="/nba-club" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Great Adventurers Club
+                        </Link>
+                        <Link href="/profile/settings" className="hover:text-[#1A1A1A] transition whitespace-nowrap">
+                            Settings
+                        </Link>
+                    </nav>
+                </div>
+            </div>
+
+            {/* Main Content Container matching Homepage and Profile width */}
+            <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-6 md:px-8 xl:px-[35px] py-10 md:py-12 space-y-8">
+                
+                {/* Back to Profile Link */}
+                <div>
+                    <Link
+                        href="/profile"
+                        className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-black transition"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Back to Profile</span>
+                    </Link>
+                </div>
+
                 {/* Success Banner */}
                 {submitSuccess && (
-                    <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <div className="bg-emerald-50 rounded-3xl p-5 flex items-start sm:items-center gap-3.5 shadow-sm">
+                        <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
                         <div>
-                            <p className="font-semibold text-green-800 text-sm">Documents submitted successfully!</p>
-                            <p className="text-green-600 text-xs mt-0.5">Your documents are now under review. You will be notified once they are verified.</p>
+                            <p className="font-bold text-emerald-900 text-sm">Documents submitted successfully!</p>
+                            <p className="text-emerald-700 text-xs mt-0.5 font-medium">Your documents are now under review. You will be notified once they are verified.</p>
                         </div>
                     </div>
                 )}
 
                 {/* Booking Info Card */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
                         <div>
-                            <h1 className="text-[22px] font-medium text-[#2C3238] mb-1">{booking.tour.name}</h1>
-                            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                                <span className="font-mono font-bold text-gray-400">#{booking.bookingReference}</span>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="font-mono text-xs font-bold text-[#6A38C2] bg-purple-50 px-2.5 py-0.5 rounded-lg">
+                                    Ref: {booking.bookingReference}
+                                </span>
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl font-black text-[#1A1A1A] tracking-tight mb-2">{booking.tour.name}</h1>
+                            <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-gray-500">
+                                <span className="flex items-center gap-1.5">
+                                    <CalendarDays className="w-3.5 h-3.5 text-gray-400" />
+                                    <span>{formatDate(booking.startDate)}</span>
+                                </span>
                                 <span>•</span>
-                                <span>{formatDate(booking.startDate)}</span>
-                                <span>•</span>
-                                <span>{booking.numberOfTravelers} traveler{booking.numberOfTravelers > 1 ? "s" : ""}</span>
+                                <span className="flex items-center gap-1.5">
+                                    <Users className="w-3.5 h-3.5 text-gray-400" />
+                                    <span>{booking.numberOfTravelers} traveler{booking.numberOfTravelers > 1 ? "s" : ""}</span>
+                                </span>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
                             {booking.documentsVerified ? (
-                                <span className="px-3 py-1.5 text-xs font-bold rounded-full bg-green-100 text-green-700 border border-green-200 flex items-center gap-1.5">
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span className="px-4 py-1.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 flex items-center gap-1.5">
+                                    <CheckCircle2 className="w-4 h-4" />
                                     All Documents Verified
                                 </span>
                             ) : isAlreadySubmitted ? (
-                                <span className="px-3 py-1.5 text-xs font-bold rounded-full bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1.5">
-                                    <AlertCircle className="w-3.5 h-3.5" />
+                                <span className="px-4 py-1.5 text-xs font-bold rounded-full bg-amber-50 text-amber-800 flex items-center gap-1.5">
+                                    <AlertCircle className="w-4 h-4" />
                                     Verification Pending
                                 </span>
                             ) : (
-                                <span className="px-3 py-1.5 text-xs font-bold rounded-full bg-gray-100 text-gray-600 border border-gray-200 flex items-center gap-1.5">
-                                    <FileText className="w-3.5 h-3.5" />
+                                <span className="px-4 py-1.5 text-xs font-bold rounded-full bg-purple-50 text-[#6A38C2] flex items-center gap-1.5">
+                                    <FileText className="w-4 h-4" />
                                     Documents Required
                                 </span>
                             )}
@@ -365,215 +418,233 @@ export default function BookingDocumentsPage() {
                 </div>
 
                 {/* Traveller Tabs + Content */}
-                <div className="border border-gray-200 rounded-xl bg-white mb-6">
+                <div className="bg-white rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden">
                     {/* Traveller Tab Cards */}
-                    <div className="p-6 border-b border-gray-200">
-                        <h3 className="text-[18px] font-medium text-[#2C3238] mb-4">Traveller in this booking</h3>
-                        <div className="flex flex-wrap items-center gap-4 mb-3">
+                    <div className="p-6 md:p-8 bg-[#F8F9FA]/70">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-base sm:text-lg font-bold text-[#1A1A1A]">Travelers in this Booking</h3>
+                            <span className="text-xs text-gray-400 font-medium">Select a traveler to upload files</span>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-3">
                             {booking.travelers.map((t, i) => {
                                 const travelerDocs = localDocs[i];
                                 const allDocsForTraveler = travelerDocs && DOC_TYPES.every(dt => travelerDocs[dt.key]?.url);
                                 const allVerifiedForTraveler = travelerDocs && DOC_TYPES.every(dt => travelerDocs[dt.key]?.verified);
+                                const isActive = activeTravelerIndex === i;
 
                                 return (
-                                    <div
+                                    <button
                                         key={i}
                                         onClick={() => setActiveTravelerIndex(i)}
-                                        className={`relative flex items-center gap-3 border rounded-xl px-4 py-3 min-w-[220px] cursor-pointer transition ${activeTravelerIndex === i ? 'border-[#6A38C2] bg-[#F4F0FF]' : 'border-gray-200 hover:border-purple-300'}`}
+                                        className={`relative flex items-center gap-3 rounded-2xl px-5 py-3.5 min-w-[220px] transition text-left ${
+                                            isActive
+                                                ? 'bg-[#432360] text-white shadow-md'
+                                                : 'bg-white hover:bg-gray-100 text-[#1A1A1A] shadow-xs'
+                                        }`}
                                     >
-                                        <div className={`w-10 h-10 rounded-full ${i === 0 ? 'bg-[#3F3F42]' : 'bg-teal-700'} text-white flex items-center justify-center font-bold text-base`}>
+                                        <div className={`w-10 h-10 rounded-full ${isActive ? 'bg-white/20 text-white' : i === 0 ? 'bg-purple-100 text-[#6A38C2]' : 'bg-gray-200 text-gray-700'} flex items-center justify-center font-bold text-sm shrink-0`}>
                                             {t.firstName?.charAt(0).toUpperCase() || "T"}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[13px] text-gray-500 font-medium">
-                                                Traveller {i + 1}{i === 0 ? " ( Primary )" : ""}
+                                            <span className={`text-[11px] font-bold uppercase tracking-wider ${isActive ? 'text-white/70' : 'text-gray-400'}`}>
+                                                {i === 0 ? "Lead Traveler" : `Traveler ${i + 1}`}
                                             </span>
-                                            <span className="text-[15px] font-semibold text-black">
+                                            <span className="text-sm font-bold truncate">
                                                 {t.firstName} {t.lastName}
                                             </span>
                                         </div>
                                         {allVerifiedForTraveler ? (
-                                            <CheckCircle2 className="absolute top-2 right-2 w-4 h-4 text-green-500" />
+                                            <CheckCircle2 className={`absolute top-2.5 right-2.5 w-4 h-4 ${isActive ? 'text-emerald-300' : 'text-emerald-600'}`} />
                                         ) : !allDocsForTraveler ? (
-                                            <span className="absolute top-2 right-2 text-orange-400 font-bold leading-none">*</span>
+                                            <span className="absolute top-2.5 right-2.5 text-amber-500 font-black leading-none">*</span>
                                         ) : null}
-                                    </div>
+                                    </button>
                                 );
                             })}
                         </div>
-                        <p className="text-[13px] text-gray-500">
-                            <span className="text-orange-400 font-bold">*</span> Please upload all documents for each traveller to proceed.
-                        </p>
                     </div>
 
                     {/* Active Traveller Content */}
-                    <div className="p-6">
+                    <div className="p-6 md:p-8 space-y-8">
                         {(() => {
                             const traveler = booking.travelers[activeTravelerIndex];
                             if (!traveler) return null;
 
                             return (
-                                <div>
-                                    {/* Disabled Personal Info */}
-                                    <div className="mb-8">
-                                        <h3 className="text-[22px] font-medium text-[#3F3F42] mb-6">
-                                            {activeTravelerIndex === 0 ? "Primary Traveller" : `Traveller ${activeTravelerIndex + 1}`}
-                                            <span className="text-gray-400 text-[16px] font-normal ml-2">(Personal Information)</span>
+                                <div className="space-y-8">
+                                    {/* Personal Info Display */}
+                                    <div>
+                                        <h3 className="text-base font-bold text-[#1A1A1A] mb-1">
+                                            {activeTravelerIndex === 0 ? "Lead Traveler Information" : `Traveler ${activeTravelerIndex + 1} Information`}
                                         </h3>
+                                        <p className="text-xs text-gray-400 font-medium mb-4">Confirmed booking details for this adventurer</p>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                            <div>
-                                                <label className="block text-[15px] text-gray-600 mb-1">First name</label>
-                                                <input type="text" value={traveler.firstName || ""} disabled className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-500 text-[15px] cursor-not-allowed" />
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                            <div className="bg-[#F8F9FA] rounded-2xl p-3.5">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">First Name</span>
+                                                <span className="text-sm font-bold text-[#1A1A1A]">{traveler.firstName || "—"}</span>
                                             </div>
-                                            <div>
-                                                <label className="block text-[15px] text-gray-600 mb-1">Last name</label>
-                                                <input type="text" value={traveler.lastName || ""} disabled className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-500 text-[15px] cursor-not-allowed" />
+                                            <div className="bg-[#F8F9FA] rounded-2xl p-3.5">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Last Name</span>
+                                                <span className="text-sm font-bold text-[#1A1A1A]">{traveler.lastName || "—"}</span>
                                             </div>
-                                            <div>
-                                                <label className="block text-[15px] text-gray-600 mb-1">Email</label>
-                                                <input type="text" value={traveler.email || "—"} disabled className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-500 text-[15px] cursor-not-allowed" />
+                                            <div className="bg-[#F8F9FA] rounded-2xl p-3.5">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Email Address</span>
+                                                <span className="text-sm font-bold text-[#1A1A1A] truncate block">{traveler.email || "—"}</span>
                                             </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="block text-[15px] text-gray-600 mb-1">Phone</label>
-                                                <input type="text" value={traveler.phone || "—"} disabled className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-500 text-[15px] cursor-not-allowed" />
+                                            <div className="bg-[#F8F9FA] rounded-2xl p-3.5">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Phone Number</span>
+                                                <span className="text-sm font-bold text-[#1A1A1A]">{traveler.phone || "—"}</span>
                                             </div>
-                                            <div>
-                                                <label className="block text-[15px] text-gray-600 mb-1">Date of Birth</label>
-                                                <input type="text" value={traveler.dateOfBirth ? formatDate(traveler.dateOfBirth) : "—"} disabled className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-500 text-[15px] cursor-not-allowed" />
+                                            <div className="bg-[#F8F9FA] rounded-2xl p-3.5">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Date of Birth</span>
+                                                <span className="text-sm font-bold text-[#1A1A1A]">{traveler.dateOfBirth ? formatDate(traveler.dateOfBirth) : "—"}</span>
                                             </div>
-                                            <div>
-                                                <label className="block text-[15px] text-gray-600 mb-1">Nationality</label>
-                                                <input type="text" value={traveler.nationality || "—"} disabled className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-500 text-[15px] cursor-not-allowed" />
+                                            <div className="bg-[#F8F9FA] rounded-2xl p-3.5">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nationality</span>
+                                                <span className="text-sm font-bold text-[#1A1A1A]">{traveler.nationality || "—"}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Document Upload Section */}
                                     <div>
-                                        <h3 className="text-[22px] font-medium text-[#3F3F42] mb-2">
-                                            Required Documents
-                                            <span className="text-gray-400 text-[16px] font-normal ml-2">(PDF format only)</span>
-                                        </h3>
-                                        <p className="text-[13px] text-gray-500 mb-6">Upload all 4 documents for this traveller. Maximum file size: 10MB per file.</p>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-base font-bold text-[#1A1A1A]">
+                                                Required Documents (PDF Format)
+                                            </h3>
+                                            <span className="text-xs text-gray-400 font-medium">Max 10MB per file</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 font-medium mb-6">Upload all 4 documents for this traveler before submitting for administrative verification.</p>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {DOC_TYPES.map((dt) => {
                                                 const docState = localDocs[activeTravelerIndex]?.[dt.key];
                                                 if (!docState) return null;
 
                                                 const hasFile = !!docState.url;
                                                 const isUploading = docState.uploading;
+                                                const IconComponent = dt.icon;
 
                                                 return (
                                                     <div
                                                         key={dt.key}
-                                                        className={`border rounded-xl p-5 transition ${hasFile ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-white'}`}
+                                                        className="bg-[#F8F9FA] rounded-3xl p-5 transition flex flex-col justify-between"
                                                     >
-                                                        <div className="flex items-center justify-between mb-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-lg">{dt.icon}</span>
-                                                                <h4 className="font-medium text-[#3F3F42] text-[15px]">{dt.label}</h4>
-                                                            </div>
-                                                            {/* Verification Badge */}
-                                                            {hasFile && (
-                                                                <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full flex items-center gap-1 ${docState.verified
-                                                                    ? 'bg-green-100 text-green-700 border border-green-200'
-                                                                    : 'bg-orange-100 text-orange-700 border border-orange-200'
-                                                                    }`}>
-                                                                    {docState.verified ? (
-                                                                        <><CheckCircle2 className="w-3 h-3" /> Verified</>
-                                                                    ) : (
-                                                                        <><XCircle className="w-3 h-3" /> Not Verified</>
-                                                                    )}
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="w-8 h-8 rounded-xl bg-purple-100 text-[#6A38C2] flex items-center justify-center">
+                                                                        <IconComponent className="w-4 h-4" />
+                                                                    </div>
+                                                                    <h4 className="font-bold text-[#1A1A1A] text-sm">{dt.label}</h4>
+                                                                </div>
 
-                                                        {isUploading ? (
-                                                            <div className="space-y-2">
-                                                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                                                    <div
-                                                                        className="bg-[#6A38C2] h-2 rounded-full transition-all duration-300"
-                                                                        style={{ width: `${docState.progress}%` }}
-                                                                    />
-                                                                </div>
-                                                                <p className="text-xs text-gray-500 flex items-center gap-1">
-                                                                    <Loader2 className="w-3 h-3 animate-spin" /> Uploading... {docState.progress}%
-                                                                </p>
-                                                            </div>
-                                                        ) : hasFile ? (
-                                                            <div className="space-y-2">
-                                                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                                    <FileText className="w-4 h-4 text-[#6A38C2]" />
-                                                                    <span className="truncate flex-1">{docState.fileName}</span>
-                                                                    <a
-                                                                        href={docState.url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="text-[#6A38C2] hover:text-purple-800 flex items-center gap-1 text-xs font-medium"
-                                                                    >
-                                                                        <Eye className="w-3 h-3" /> View
-                                                                    </a>
-                                                                </div>
-                                                                {!isAlreadySubmitted && !docState.verified && (
-                                                                    <label className="text-xs text-[#6A38C2] font-medium cursor-pointer hover:text-purple-800 inline-flex items-center gap-1">
-                                                                        <Upload className="w-3 h-3" /> Replace file
-                                                                        <input
-                                                                            type="file"
-                                                                            accept=".pdf,application/pdf"
-                                                                            className="hidden"
-                                                                            onChange={(e) => {
-                                                                                const f = e.target.files?.[0];
-                                                                                if (f) handleFileSelect(activeTravelerIndex, dt.key, f);
-                                                                            }}
-                                                                        />
-                                                                    </label>
+                                                                {/* Verification Badge */}
+                                                                {hasFile && (
+                                                                    <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full flex items-center gap-1 ${
+                                                                        docState.verified
+                                                                            ? 'bg-emerald-100 text-emerald-800'
+                                                                            : 'bg-amber-100 text-amber-800'
+                                                                    }`}>
+                                                                        {docState.verified ? (
+                                                                            <><CheckCircle2 className="w-3 h-3" /> Verified</>
+                                                                        ) : (
+                                                                            <><AlertCircle className="w-3 h-3" /> Under Review</>
+                                                                        )}
+                                                                    </span>
                                                                 )}
                                                             </div>
-                                                        ) : (
-                                                            <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg py-6 cursor-pointer hover:border-[#6A38C2] hover:bg-purple-50/30 transition group">
-                                                                <Upload className="w-6 h-6 text-gray-400 group-hover:text-[#6A38C2] mb-2 transition" />
-                                                                <span className="text-sm text-gray-500 group-hover:text-[#6A38C2] font-medium transition">
-                                                                    Click to upload PDF
-                                                                </span>
-                                                                <span className="text-xs text-gray-400 mt-1">Max 10MB</span>
-                                                                <input
-                                                                    type="file"
-                                                                    accept=".pdf,application/pdf"
-                                                                    className="hidden"
-                                                                    onChange={(e) => {
-                                                                        const f = e.target.files?.[0];
-                                                                        if (f) handleFileSelect(activeTravelerIndex, dt.key, f);
-                                                                    }}
-                                                                />
-                                                            </label>
-                                                        )}
+
+                                                            {isUploading ? (
+                                                                <div className="space-y-2 py-3">
+                                                                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                                                        <div
+                                                                            className="bg-[#432360] h-2 rounded-full transition-all duration-300"
+                                                                            style={{ width: `${docState.progress}%` }}
+                                                                        />
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-500 font-medium flex items-center gap-1.5">
+                                                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#432360]" />
+                                                                        <span>Uploading document ({docState.progress}%)</span>
+                                                                    </p>
+                                                                </div>
+                                                            ) : hasFile ? (
+                                                                <div className="space-y-3 pt-1">
+                                                                    <div className="flex items-center gap-2 bg-white rounded-2xl p-3 shadow-xs">
+                                                                        <FileText className="w-4 h-4 text-[#432360] shrink-0" />
+                                                                        <span className="truncate flex-1 text-xs font-bold text-gray-800">{docState.fileName}</span>
+                                                                        <a
+                                                                            href={docState.url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-[#432360] hover:text-[#321a48] flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 transition"
+                                                                        >
+                                                                            <Eye className="w-3.5 h-3.5" />
+                                                                            <span>View</span>
+                                                                        </a>
+                                                                    </div>
+                                                                    {!isAlreadySubmitted && !docState.verified && (
+                                                                        <label className="text-xs text-[#432360] font-bold cursor-pointer hover:underline inline-flex items-center gap-1 pl-1">
+                                                                            <Upload className="w-3.5 h-3.5" />
+                                                                            <span>Replace PDF file</span>
+                                                                            <input
+                                                                                type="file"
+                                                                                accept=".pdf,application/pdf"
+                                                                                className="hidden"
+                                                                                onChange={(e) => {
+                                                                                    const f = e.target.files?.[0];
+                                                                                    if (f) handleFileSelect(activeTravelerIndex, dt.key, f);
+                                                                                }}
+                                                                            />
+                                                                        </label>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <label className="flex flex-col items-center justify-center bg-white rounded-2xl py-6 cursor-pointer hover:bg-purple-50/40 transition group shadow-xs">
+                                                                    <Upload className="w-6 h-6 text-gray-400 group-hover:text-[#432360] mb-2 transition" />
+                                                                    <span className="text-xs font-bold text-gray-700 group-hover:text-[#432360] transition">
+                                                                        Upload PDF Document
+                                                                    </span>
+                                                                    <span className="text-[10px] text-gray-400 mt-0.5">Click to browse files</span>
+                                                                    <input
+                                                                        type="file"
+                                                                        accept=".pdf,application/pdf"
+                                                                        className="hidden"
+                                                                        onChange={(e) => {
+                                                                            const f = e.target.files?.[0];
+                                                                            if (f) handleFileSelect(activeTravelerIndex, dt.key, f);
+                                                                        }}
+                                                                    />
+                                                                </label>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
 
-                                    {/* Navigation Buttons */}
-                                    <div className="flex justify-end mt-8 gap-4">
-                                        {activeTravelerIndex > 0 && (
+                                    {/* Navigation Buttons between Travelers */}
+                                    <div className="flex justify-between items-center pt-4">
+                                        {activeTravelerIndex > 0 ? (
                                             <button
                                                 onClick={() => setActiveTravelerIndex(activeTravelerIndex - 1)}
-                                                className="border border-gray-300 hover:bg-gray-50 text-[#3F3F42] font-medium py-2.5 px-8 rounded-lg transition"
+                                                className="bg-gray-100 hover:bg-gray-200 text-[#1A1A1A] font-bold py-2.5 px-6 rounded-full text-xs transition inline-flex items-center gap-1"
                                             >
-                                                Back
+                                                <ChevronLeft className="w-4 h-4" />
+                                                <span>Previous Traveler</span>
                                             </button>
-                                        )}
+                                        ) : <div />}
+
                                         {activeTravelerIndex < booking.numberOfTravelers - 1 && (
                                             <button
                                                 onClick={() => setActiveTravelerIndex(activeTravelerIndex + 1)}
-                                                className="bg-[#6A38C2] hover:bg-purple-800 text-white font-medium py-2.5 px-8 rounded-lg transition"
+                                                className="bg-[#432360] hover:bg-[#321a48] text-white font-bold py-2.5 px-7 rounded-full text-xs transition shadow-sm inline-flex items-center gap-1"
                                             >
-                                                Next Traveller
+                                                <span>Next Traveler</span>
+                                                <ChevronRight className="w-4 h-4" />
                                             </button>
                                         )}
                                     </div>
@@ -585,23 +656,24 @@ export default function BookingDocumentsPage() {
 
                 {/* Submit Section */}
                 {!isAlreadySubmitted && (
-                    <div className="bg-white rounded-xl border border-gray-200 p-6">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
                             <div>
-                                <h3 className="font-medium text-[#3F3F42] text-[16px]">Ready to submit?</h3>
-                                <p className="text-[13px] text-gray-500 mt-1">
+                                <h3 className="font-bold text-[#1A1A1A] text-lg">Ready to submit all documents?</h3>
+                                <p className="text-xs text-gray-500 font-medium mt-1">
                                     {allDocsUploaded()
-                                        ? "All documents have been uploaded. Click submit to send them for verification."
-                                        : "Please upload all required documents for every traveller before submitting."}
+                                        ? "All required documents for all travelers have been uploaded. Submit them to initiate the verification process."
+                                        : "Please upload all 4 documents for each traveler in this booking before submitting."}
                                 </p>
                             </div>
                             <button
                                 onClick={handleSubmitAll}
                                 disabled={!allDocsUploaded() || isSubmitting}
-                                className={`flex items-center gap-2 font-medium py-3 px-8 rounded-lg transition text-sm whitespace-nowrap ${allDocsUploaded() && !isSubmitting
-                                    ? 'bg-[#6A38C2] hover:bg-purple-800 text-white'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    }`}
+                                className={`flex items-center gap-2 font-bold py-3.5 px-8 rounded-full transition text-xs whitespace-nowrap shadow-md ${
+                                    allDocsUploaded() && !isSubmitting
+                                        ? 'bg-[#432360] hover:bg-[#321a48] text-white'
+                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                }`}
                             >
                                 {isSubmitting ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
@@ -615,15 +687,15 @@ export default function BookingDocumentsPage() {
 
                 {/* Already submitted message */}
                 {isAlreadySubmitted && !submitSuccess && (
-                    <div className="bg-white rounded-xl border border-gray-200 p-6">
-                        <div className="flex items-center gap-3">
-                            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+                        <div className="flex items-center gap-3.5">
+                            <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
                             <div>
-                                <p className="font-medium text-[#3F3F42] text-sm">Documents have been submitted</p>
-                                <p className="text-gray-500 text-xs mt-0.5">
+                                <p className="font-bold text-[#1A1A1A] text-sm">Documents have been submitted</p>
+                                <p className="text-gray-500 text-xs font-medium mt-0.5">
                                     {booking.documentsVerified
-                                        ? "All documents have been verified by the admin team."
-                                        : "Documents are currently under review by our team."}
+                                        ? "All documents have been verified and approved by our team."
+                                        : "Your documents are currently under review by our operations team."}
                                 </p>
                             </div>
                         </div>

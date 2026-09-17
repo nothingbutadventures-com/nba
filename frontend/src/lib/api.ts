@@ -1,5 +1,5 @@
-// const API_BASE_URL = "http://localhost:3001/api/v1";
-const API_BASE_URL = "https://api-gi52ugpsnq-uc.a.run.app/api/v1";
+const API_BASE_URL = "http://localhost:3001/api/v1";
+// const API_BASE_URL = "https://api-gi52ugpsnq-uc.a.run.app/api/v1";
 
 export const api = {
   baseURL: API_BASE_URL,
@@ -22,9 +22,16 @@ export const api = {
       getFeatured: "/tours/featured",
       getPopular: "/tours/popular",
       search: "/tours/search",
+      getMyAssigned: "/tours/my-assigned-tours",
       create: "/tours",
       update: "/tours/:id",
       delete: "/tours/:id",
+    },
+    tourExecution: {
+      getByTour: (tourId: string, departureDate?: string) =>
+        `/tour-execution/${tourId}${departureDate ? `?departureDate=${encodeURIComponent(departureDate)}` : ""}`,
+      updateAttendance: (tourId: string) => `/tour-execution/${tourId}/attendance`,
+      updateActivity: (tourId: string) => `/tour-execution/${tourId}/activity`,
     },
     countries: {
       getAll: "/countries",
